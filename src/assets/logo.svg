@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#3B9EFF"/>
+      <stop offset="55%"  stop-color="#6B5CFF"/>
+      <stop offset="100%" stop-color="#A259FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ── Lignes constellation ──────────────────────────────────────── -->
+  <g stroke="url(#grad)" stroke-width="1.6" stroke-linecap="round" opacity="0.65">
+    <!-- Nœuds : A(95,20)  B(162,60)  C(162,108)  D(95,114)  E(35,178)  F(168,178) -->
+    <line x1="95"  y1="20"  x2="162" y2="60" />
+    <line x1="162" y1="60"  x2="162" y2="108"/>
+    <line x1="162" y1="108" x2="95"  y2="114"/>
+    <line x1="95"  y1="20"  x2="95"  y2="114"/>
+    <line x1="95"  y1="114" x2="35"  y2="178"/>
+    <line x1="95"  y1="114" x2="168" y2="178"/>
+    <line x1="95"  y1="20"  x2="35"  y2="178"/>
+    <line x1="162" y1="60"  x2="168" y2="178"/>
+  </g>
+
+  <!-- ── Grand R (externe) ─────────────────────────────────────────── -->
+  <!--
+    Tige verticale : (35,20)→(35,178)
+    Ventre haut    : (35,20)→(95,20)→arc→(162,60)→(162,108)→arc→(95,114)→(35,114)
+    Jambe diagonale: (72,114)→(168,178)
+  -->
+  <path
+    d="M 35,20 L 35,178
+       M 35,20 L 95,20
+         C 140,20 162,38 162,66
+         C 162,94 140,114 95,114
+       L 35,114
+       M 72,114 L 168,178"
+    stroke="url(#grad)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- ── Petit R (interne, dans le ventre du grand) ─────────────────── -->
+  <!--
+    Même forme, scale 0.52, positionné pour chevaucher le creux du grand R.
+    translate(44,56) scale(0.52) → tige de (67,66) à (67,158) env.
+  -->
+  <g transform="translate(44,56) scale(0.52)">
+    <path
+      d="M 35,20 L 35,178
+         M 35,20 L 95,20
+           C 140,20 162,38 162,66
+           C 162,94 140,114 95,114
+         L 35,114
+         M 72,114 L 168,178"
+      stroke="url(#grad)"
+      stroke-width="26"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <!-- ── Nœuds constellation ───────────────────────────────────────── -->
+  <g fill="url(#grad)">
+    <circle cx="95"  cy="20"  r="5"/>
+    <circle cx="162" cy="60"  r="8"/>
+    <circle cx="162" cy="108" r="5.5"/>
+    <circle cx="35"  cy="178" r="8"/>
+    <circle cx="168" cy="178" r="5.5"/>
+  </g>
+</svg>

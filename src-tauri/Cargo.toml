@@ -1,0 +1,40 @@
+[package]
+name = "ronako"
+version = "0.1.0"
+description = "Ronako — Superviseur Multi-Agents IA"
+authors = []
+edition = "2021"
+
+[lib]
+name = "ronako_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+dirs = "5"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+notify = { version = "6", features = [] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+futures-util = "0.3"
+tauri-plugin-dialog = "2"
+walkdir = "2"
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
