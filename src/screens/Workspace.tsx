@@ -459,6 +459,7 @@ export function Workspace() {
                 onConfirm={handleConfirmPlan}
                 onCancel={() => setProposal(null)}
                 loading={isRunning}
+                hasFolder={hasFolder}
               />
             )}
           </AnimatePresence>

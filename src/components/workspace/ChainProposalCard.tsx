@@ -4,7 +4,7 @@ import {
   Zap, X, Plus, GripVertical, ChevronDown, ChevronUp,
   Sparkles, RotateCcw, Wand2, CheckCircle2, AlertCircle,
   Pencil, Check, Dna, TrendingDown, Timer, Star,
-  Info, ChevronRight, Lock,
+  Info, ChevronRight,
 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -27,7 +27,9 @@ import { useChainAnalyzer } from "@/hooks/useChainAnalyzer";
 import { CHAIN_MODES, getDefaultAgentsForMode, type ChainMode } from "@/lib/chainModes";
 import { estimateChainCost, formatCentsEstimate } from "@/lib/costEstimator";
 import { AGENT_DELIVERABLE_DESCRIPTIONS, DELIVERABLE_FORMATS } from "@/lib/formatSelector";
+import { FORMAT_REQUIREMENTS } from "@/lib/formatRequirements";
 import type { ChainProposal, ProposedAgent, Agent, OptimizerSuggestion } from "@/types";
+import type { ConnectorKeys } from "@/store/settingsStore";
 import { cn } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
@@ -39,14 +41,22 @@ const AXIS_ICONS: Record<string, React.ReactNode> = {
   quality: <Star size={12} className="text-warning shrink-0" />,
 };
 
+interface FormatAlert {
+  formatId: string;
+  message: string;
+  blocking: boolean;
+  skillId?: string;
+}
+
 interface ChainProposalCardProps {
   proposal: ChainProposal;
   onConfirm: (brief: string, agentIds: string[]) => void;
   onCancel: () => void;
+  hasFolder?: boolean;
   loading?: boolean;
 }
 
-export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: ChainProposalCardProps) {
+export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasFolder = false }: ChainProposalCardProps) {
   const { agents, getAgent } = useAgentStore();
   const { projectDNA, setProjectDNA, chainMode, setChainMode, customConfig, setCustomConfig, setCustomAgentModel,
     selectedFormats, setSelectedFormats } = useChainStore();
@@ -65,8 +75,52 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
   const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [tempSkillIds, setTempSkillIds] = useState<string[]>([]);
   const [customDeliverableNote, setCustomDeliverableNote] = useState("");
+  const [formatAlerts, setFormatAlerts] = useState<FormatAlert[]>([]);
 
-  const { skills: allSkills, setTemporarySkills } = useAgentStore();
+  const { skills: allSkills, setTemporarySkills, toggleSkill } = useAgentStore();
+  const { getConnectorKey } = useSettingsStore();
+
+  // Défaut intelligent au premier rendu selon le contexte
+  useEffect(() => {
+    setSelectedFormats(hasFolder ? ["prompt_cc"] : ["markdown"]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onFormatToggle = (fmtId: string) => {
+    const isSelected = selectedFormats.includes(fmtId);
+    const req = FORMAT_REQUIREMENTS[fmtId];
+
+    if (!isSelected && req) {
+      // Connecteur indispensable manquant → bloquer
+      if (req.blockIfMissing && req.requiredConnectors) {
+        const missing = req.requiredConnectors.filter(
+          (c) => !getConnectorKey(c as keyof ConnectorKeys),
+        );
+        if (missing.length > 0) {
+          setFormatAlerts((prev) => [
+            ...prev.filter((a) => a.formatId !== fmtId),
+            { formatId: fmtId, message: req.tip ?? "", blocking: true },
+          ]);
+          return; // ne pas cocher
+        }
+      }
+      // Suggestion non bloquante
+      if (req.tip) {
+        setFormatAlerts((prev) => [
+          ...prev.filter((a) => a.formatId !== fmtId),
+          { formatId: fmtId, message: req.tip!, blocking: false, skillId: req.suggestedSkills?.[0] },
+        ]);
+      }
+    } else if (isSelected) {
+      setFormatAlerts((prev) => prev.filter((a) => a.formatId !== fmtId));
+    }
+
+    setSelectedFormats(
+      isSelected
+        ? selectedFormats.filter((f) => f !== fmtId)
+        : [...selectedFormats, fmtId],
+    );
+  };
   const allAgentIds = new Set(agents.map((a) => a.id));
   const availableAgents = agents.filter(
     (a) => !a.isSystem && !selectedAgents.find((s) => s.id === a.id),
@@ -419,37 +473,77 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
 
       {/* ── Formats souhaités ──────────────────────────────────── */}
       <div className="px-4 py-2.5 border-b border-crystal/20">
-        <p className="text-[10px] text-silk/30 uppercase tracking-widest mb-2">Livrables souhaités</p>
+        <div className="flex items-center gap-1.5 mb-2">
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest">Livrables souhaités</p>
+          {selectedFormats.length === 0 && (
+            <span className="text-[10px] text-warning/70 font-medium">— Sélectionne au moins un format</span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
           {Object.values(DELIVERABLE_FORMATS).map((fmt) => {
             const isSelected = selectedFormats.includes(fmt.id);
-            const isLocked = fmt.alwaysIncluded;
             return (
               <button
                 key={fmt.id}
-                disabled={isLocked}
-                onClick={() => setSelectedFormats(
-                  isSelected && !isLocked
-                    ? selectedFormats.filter((f) => f !== fmt.id)
-                    : [...selectedFormats, fmt.id]
-                )}
-                title={isLocked ? "Toujours inclus" : fmt.description}
+                onClick={() => onFormatToggle(fmt.id)}
+                title={fmt.description}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] border transition-all",
                   isSelected
-                    ? isLocked
-                      ? "border-mystic/40 bg-mystic/10 text-mystic cursor-default"
-                      : "border-electric/40 bg-electric/10 text-electric"
-                    : "border-crystal text-silk/35 hover:border-crystal-light",
+                    ? "border-electric/40 bg-electric/10 text-electric"
+                    : "border-crystal text-silk/35 hover:border-crystal-light hover:text-silk/60",
                 )}
               >
                 <span>{fmt.icon}</span>
                 <span>{fmt.label}</span>
-                {isLocked && <Lock size={9} className="opacity-50 ml-0.5" />}
               </button>
             );
           })}
         </div>
+
+        {/* Alertes contextuelles par format */}
+        <AnimatePresence>
+          {formatAlerts.map((alert) => (
+            <motion.div key={alert.formatId}
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              className={cn(
+                "rounded-xl border px-3 py-2 mb-2 text-[11px]",
+                alert.blocking
+                  ? "bg-warning/8 border-warning/25 text-warning/80"
+                  : "bg-electric/5 border-electric/20 text-silk/60",
+              )}>
+              <p className="leading-relaxed mb-1.5">{alert.message}</p>
+              <div className="flex gap-2">
+                {alert.blocking ? (
+                  <button
+                    onClick={() => document.dispatchEvent(new Event("open-settings-connectors"))}
+                    className="text-[10px] font-medium text-warning/80 hover:text-warning border border-warning/30 rounded-lg px-2 py-0.5 transition-all">
+                    Configurer →
+                  </button>
+                ) : (
+                  <>
+                    {alert.skillId && (() => {
+                      const skill = allSkills.find((s) => s.id === alert.skillId);
+                      return skill ? (
+                        <button
+                          onClick={() => { toggleSkill(skill.id); setFormatAlerts((p) => p.filter((a) => a.formatId !== alert.formatId)); }}
+                          className="text-[10px] font-medium text-electric/80 hover:text-electric border border-electric/30 rounded-lg px-2 py-0.5 transition-all">
+                          Activer ⏱
+                        </button>
+                      ) : null;
+                    })()}
+                    <button
+                      onClick={() => setFormatAlerts((p) => p.filter((a) => a.formatId !== alert.formatId))}
+                      className="text-[10px] text-silk/30 hover:text-silk/60 transition-colors">
+                      Ignorer
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
         {/* Livrable personnalisé */}
         <div className="flex items-center gap-2 mt-1">
           <span className="text-silk/25 text-[11px] shrink-0">+ autre :</span>
@@ -671,7 +765,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
           size="sm"
           onClick={handleConfirm}
           loading={loading}
-          disabled={selectedAgents.length === 0 || loading || optimizing}
+          disabled={selectedAgents.length === 0 || loading || optimizing || selectedFormats.length === 0}
           className="flex-1"
         >
           <Zap size={12} />

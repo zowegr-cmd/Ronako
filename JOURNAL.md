@@ -311,6 +311,40 @@ Product Tour type Notion/Linear — highlight réel sur l'élément, tooltip pos
 
 ---
 
+## SESSION 2026-05-30 — Formats libres + suggestions contextuelles
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ formatRequirements.ts — table des exigences par format
+     notion → bloquant si clé manquante
+     email_sequence, social_posts, action_plan → suggestion skill
+✅ formatSelector.ts — alwaysIncluded retiré de prompt_cc et markdown
+✅ ChainProposalCard.tsx :
+     Tous les formats décochables (plus de lock)
+     Défaut intelligent : dossier → "Prompt CC" / sans → "Synthèse Markdown"
+     Validation min 1 format → bouton Lancer désactivé + message
+     onFormatToggle → vérifie FORMAT_REQUIREMENTS
+     Alertes animées : warning bloquant (Notion) ou suggestion (skill)
+     Bouton "Activer ⏱" active le skill en direct
+     Bouton "Ignorer" ferme la suggestion
+     Bouton "Configurer →" ouvre Paramètres connecteurs
+✅ Workspace.tsx — hasFolder passé à ChainProposalCard
+✅ TypeScript 0 erreurs
+```
+
+### FICHIERS MODIFIÉS
+```
+src/lib/formatRequirements.ts         (créé)
+src/lib/formatSelector.ts             (alwaysIncluded retiré)
+src/components/workspace/ChainProposalCard.tsx  (formats libres + alertes)
+src/screens/Workspace.tsx             (hasFolder passé à ChainProposalCard)
+```
+
+### ÉTAT ACTUEL
+Formats entièrement libres, défaut intelligent par contexte, suggestions non bloquantes et warnings bloquants pour connecteurs manquants.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```
