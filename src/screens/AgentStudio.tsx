@@ -113,14 +113,26 @@ export function AgentStudio() {
               onClick={() => { setSelectedId(agent.id); setActiveTab("config"); }} />
           ))}
 
-          {/* Séparateur système */}
-          <div className="px-3 py-2 mt-2">
-            <div className="flex items-center gap-1.5 mb-1">
+          {/* Agents système (Relay, Ella, Ryo, Sam, Marcus) */}
+          <div className="px-3 pt-3 pb-1">
+            <div className="flex items-center gap-1.5">
               <Lock size={9} className="text-silk/20" />
-              <span className="text-[9px] text-silk/20 uppercase tracking-widest">Système</span>
+              <span className="text-[9px] text-silk/20 uppercase tracking-widest">Agents Système</span>
             </div>
           </div>
-          {[...systemCore, ...builtinConsultants].map((agent) => (
+          {systemCore.map((agent) => (
+            <SidebarItem key={agent.id} agent={agent} isSelected={selectedId === agent.id} isSystem
+              onClick={() => { setSelectedId(agent.id); setActiveTab("config"); }} />
+          ))}
+
+          {/* Consultants (Nova, Idéation, Prompt Machine, Veille Tech) */}
+          <div className="px-3 pt-3 pb-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-electric/40">✦</span>
+              <span className="text-[9px] text-electric/40 uppercase tracking-widest">Consultants</span>
+            </div>
+          </div>
+          {builtinConsultants.map((agent) => (
             <SidebarItem key={agent.id} agent={agent} isSelected={selectedId === agent.id} isSystem
               onClick={() => { setSelectedId(agent.id); setActiveTab("config"); }} />
           ))}

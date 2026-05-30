@@ -5,6 +5,7 @@ import {
   Plus, Copy, Key, Eye, EyeOff, Zap, Globe, Server,
   ExternalLink, Search, Pencil, ToggleLeft, ToggleRight,
 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 import { SKILL_PACKS } from "@/lib/skillPacks";
 import { useAgentStore } from "@/store/agentStore";
@@ -66,126 +67,272 @@ export function PackManager() {
   );
 }
 
-// ── Onglet Skills Packs ───────────────────────────────────────────────────────
+// ── Onglet Skills — 3 sous-onglets ───────────────────────────────────────────
+
+type SkillSubTab = "packs" | "library" | "create";
 
 function SkillsTab() {
-  const [expandedPack, setExpandedPack] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
+  const [subTab, setSubTab] = useState<SkillSubTab>("packs");
   const [editingSkill, setEditingSkill] = useState<import("@/types").Skill | null>(null);
-  const [githubUrl, setGithubUrl] = useState("");
-  const [importing, setImporting] = useState(false);
-  const { skills, addSkill, updateSkill, deleteSkill } = useAgentStore();
-
-  const handleImportGithub = async () => {
-    if (!githubUrl.trim()) return;
-    setImporting(true);
-    try {
-      // Convertir l'URL GitHub en URL raw
-      const raw = githubUrl
-        .replace("github.com", "raw.githubusercontent.com")
-        .replace("/blob/", "/");
-      const resp = await fetch(raw);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const text = await resp.text();
-      // Parser un skill depuis Markdown : titre = nom, premier paragraphe = description, reste = content
-      const lines = text.split("\n");
-      const name = lines.find((l) => l.startsWith("# "))?.slice(2).trim() ?? "Skill importé";
-      const description = lines.find((l) => !l.startsWith("#") && l.trim())?.trim() ?? "";
-      const content = text;
-      addSkill({ name, description, content, agentIds: [], isActive: true, isTemporary: false, inheritToAll: false, triggerKeywords: [], createdBy: "user" });
-      setGithubUrl("");
-    } catch (e) {
-      alert(`Erreur import : ${String(e)}`);
-    } finally { setImporting(false); }
-  };
+  const [showSkillEditor, setShowSkillEditor] = useState(false);
+  const { addSkill, updateSkill } = useAgentStore();
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      className="flex flex-col gap-4">
-
-      {/* Actions globales */}
-      <div className="flex gap-2 flex-wrap">
-        <Button variant="primary" size="sm" onClick={() => { setEditingSkill(null); setShowEditor(true); }}>
-          <Plus size={12} /> Créer un skill
-        </Button>
-        <div className="flex flex-1 gap-2 min-w-0">
-          <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
-            placeholder="URL GitHub d'un fichier .md skill…"
-            className="flex-1 bg-graphite border border-crystal rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40 min-w-0" />
-          <Button variant="ghost" size="sm" loading={importing} disabled={!githubUrl.trim()} onClick={handleImportGithub}>
-            <Download size={12} /> Import
-          </Button>
-        </div>
+      className="flex flex-col gap-3">
+      {/* Sous-onglets */}
+      <div className="flex gap-1 bg-graphite rounded-xl p-0.5 self-start">
+        {([["packs","📦 Packs"],["library","📚 Bibliothèque"],["create","✏️ Créer"]] as [SkillSubTab,string][]).map(([v,l]) => (
+          <button key={v} onClick={() => setSubTab(v)}
+            className={cn("px-3 py-1.5 rounded-[10px] text-xs font-medium transition-all",
+              subTab === v ? "bg-crystal text-silk" : "text-silk/40 hover:text-silk/70")}>
+            {l}
+          </button>
+        ))}
       </div>
 
-      {/* Éditeur skill */}
+      <AnimatePresence mode="wait">
+        {subTab === "packs" && (
+          <motion.div key="packs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex flex-col gap-3">
+            <PacksSubTab />
+          </motion.div>
+        )}
+        {subTab === "library" && (
+          <motion.div key="library" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex flex-col gap-3">
+            <LibrarySubTab
+              onEdit={(sk) => { setEditingSkill(sk); setShowSkillEditor(true); setSubTab("create"); }} />
+          </motion.div>
+        )}
+        {subTab === "create" && (
+          <motion.div key="create" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <SkillEditorForm
+              skill={editingSkill}
+              onSave={(data) => {
+                if (editingSkill) updateSkill(editingSkill.id, data);
+                else addSkill({ ...data, createdBy: "user" });
+                setShowSkillEditor(false); setEditingSkill(null); setSubTab("library");
+              }}
+              onCancel={() => { setEditingSkill(null); setShowSkillEditor(false); setSubTab("library"); }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {showSkillEditor && false /* handled via subTab */}
+    </motion.div>
+  );
+}
+
+// ── Sous-onglet Packs ─────────────────────────────────────────────────────────
+
+function PacksSubTab() {
+  const [expandedPack, setExpandedPack] = useState<string | null>(null);
+  const [showPackForm, setShowPackForm] = useState(false);
+  const [editingPack, setEditingPack] = useState<SkillPack | null>(null);
+  const [packName, setPackName] = useState("");
+  const [packIcon, setPackIcon] = useState("📦");
+  const [packDesc, setPackDesc] = useState("");
+  const { customPacks, addCustomPack, updateCustomPack, deleteCustomPack, installCustomPack, skills } = useAgentStore();
+
+  const handleSavePack = () => {
+    if (!packName.trim()) return;
+    if (editingPack) {
+      updateCustomPack(editingPack.id, { name: packName, icon: packIcon, description: packDesc });
+    } else {
+      addCustomPack({ name: packName, icon: packIcon, description: packDesc, sector: "custom", skills: [] });
+    }
+    setShowPackForm(false); setEditingPack(null); setPackName(""); setPackIcon("📦"); setPackDesc("");
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Créer pack custom */}
       <AnimatePresence>
-        {showEditor && (
-          <SkillEditorForm
-            skill={editingSkill}
-            onSave={(data) => {
-              if (editingSkill) updateSkill(editingSkill.id, data);
-              else addSkill({ ...data, createdBy: "user" });
-              setShowEditor(false); setEditingSkill(null);
-            }}
-            onCancel={() => { setShowEditor(false); setEditingSkill(null); }}
-          />
+        {showPackForm ? (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-graphite border border-electric/30 rounded-xl p-4 flex flex-col gap-3">
+            <p className="text-xs font-semibold text-silk">{editingPack ? "Modifier le pack" : "Nouveau pack"}</p>
+            <div className="flex gap-2">
+              <input value={packIcon} onChange={(e) => setPackIcon(e.target.value)}
+                className="w-12 text-center input-sm" placeholder="📦" />
+              <input value={packName} onChange={(e) => setPackName(e.target.value)}
+                className="flex-1 input-sm" placeholder="Nom du pack" />
+            </div>
+            <input value={packDesc} onChange={(e) => setPackDesc(e.target.value)}
+              className="input-sm" placeholder="Description" />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={() => { setShowPackForm(false); setEditingPack(null); }}>Annuler</Button>
+              <Button variant="primary" size="sm" disabled={!packName.trim()} onClick={handleSavePack}>Sauver</Button>
+            </div>
+          </motion.div>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={() => setShowPackForm(true)}
+            className="w-full border-dashed border-crystal/50">
+            <Plus size={12} /> Créer un pack custom
+          </Button>
         )}
       </AnimatePresence>
 
-      {/* Skills installés (tous éditables) */}
-      {skills.length > 0 && (
-        <div>
-          <p className="text-[10px] text-silk/30 uppercase tracking-widest mb-2">Mes Skills ({skills.length})</p>
-          <div className="flex flex-col gap-1.5">
-            {skills.map((skill) => (
-              <div key={skill.id} className={cn(
-                "flex items-start gap-3 p-3 rounded-xl border transition-all group",
-                skill.isActive ? "bg-electric/5 border-electric/20" : "bg-graphite border-crystal/50",
-              )}>
+      {/* Packs custom */}
+      {customPacks.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest">Mes packs ({customPacks.length})</p>
+          {customPacks.map((pack) => {
+            const packSkillIds = pack.skills.map((s) => s.id);
+            const installedCount = skills.filter((sk) => packSkillIds.includes(sk.id)).length;
+            return (
+              <div key={pack.id} className="bg-graphite border border-crystal/50 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-xl">{pack.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-xs font-medium text-silk">{skill.name}</p>
-                    {skill.isActive && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Actif</span>}
-                    {skill.inheritToAll && <span className="text-[8px] bg-mystic/15 text-mystic px-1.5 py-0.5 rounded-full">🌐 Universel</span>}
-                    {skill.createdBy === "system" && <span className="text-[8px] text-silk/25">pack</span>}
-                  </div>
-                  <p className="text-[10px] text-silk/40 mt-0.5">{skill.description}</p>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {skill.agentIds.slice(0, 4).map((aid) => (
-                      <span key={aid} className="text-[8px] bg-crystal/40 text-silk/40 px-1.5 py-0.5 rounded-full">{aid}</span>
-                    ))}
-                  </div>
+                  <p className="text-sm font-medium text-silk">{pack.name}</p>
+                  <p className="text-[10px] text-silk/40">{pack.description || "Pack custom"} · {pack.skills.length} skills</p>
+                  {installedCount > 0 && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Installé</span>}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => { setEditingSkill(skill); setShowEditor(true); }}
-                    className="w-6 h-6 rounded flex items-center justify-center text-silk/25 hover:text-electric/60 opacity-0 group-hover:opacity-100 transition-all">
-                    <Pencil size={11} />
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => installCustomPack(pack.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-electric/60 hover:text-electric hover:bg-electric/10 transition-all" title="Installer">
+                    <Download size={13} />
                   </button>
-                  <button onClick={() => deleteSkill(skill.id)}
-                    className="w-6 h-6 rounded flex items-center justify-center text-silk/20 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
-                    <Trash2 size={11} />
+                  <button onClick={() => { setEditingPack(pack); setPackName(pack.name); setPackIcon(pack.icon); setPackDesc(pack.description); setShowPackForm(true); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/25 hover:text-silk/60 transition-all">
+                    <Pencil size={12} />
                   </button>
-                  <button onClick={() => useAgentStore.getState().toggleSkill(skill.id)}
-                    className="text-silk/30 hover:text-silk/70 transition-colors">
-                    {skill.isActive
-                      ? <ToggleRight size={16} className="text-electric" />
-                      : <ToggleLeft size={16} />}
+                  <button onClick={() => deleteCustomPack(pack.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
-      <p className="text-[10px] text-silk/30 border-t border-crystal/30 pt-3">Packs prédéfinis</p>
+      {/* Packs prédéfinis */}
+      <p className="text-[10px] text-silk/30 uppercase tracking-widest mt-1">Packs officiels</p>
       {SKILL_PACKS.map((pack) => (
         <SkillPackCard key={pack.id} pack={pack}
           expanded={expandedPack === pack.id}
           onToggle={() => setExpandedPack(expandedPack === pack.id ? null : pack.id)} />
       ))}
-    </motion.div>
+    </div>
+  );
+}
+
+// ── Sous-onglet Bibliothèque ──────────────────────────────────────────────────
+
+function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => void }) {
+  const [search, setSearch] = useState("");
+  const [filterAgent, setFilterAgent] = useState("all");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const { skills, addSkill, deleteSkill } = useAgentStore();
+  const { agents } = useAgentStore();
+
+  const handleImportGithub = async () => {
+    if (!githubUrl.trim()) return;
+    setImporting(true);
+    try {
+      const raw = githubUrl
+        .replace("github.com", "raw.githubusercontent.com")
+        .replace("/blob/", "/");
+      // Via Rust pour respecter la règle no-fetch JS
+      const text = await invoke<string>("http_custom_call", {
+        url: raw, method: "GET", headers: [], body: null,
+      });
+      const lines = text.split("\n");
+      const name = lines.find((l) => l.startsWith("# "))?.slice(2).trim() ?? "Skill importé";
+      const description = lines.find((l) => !l.startsWith("#") && l.trim())?.trim() ?? "";
+      addSkill({ name, description, content: text, agentIds: [], isActive: true, isTemporary: false, inheritToAll: false, triggerKeywords: [], createdBy: "user" });
+      setGithubUrl("");
+    } catch (e) { alert(`Erreur : ${String(e)}`); }
+    finally { setImporting(false); }
+  };
+
+  const filtered = skills.filter((sk) => {
+    const matchSearch = !search || sk.name.toLowerCase().includes(search.toLowerCase());
+    const matchAgent = filterAgent === "all" || sk.agentIds.includes(filterAgent);
+    return matchSearch && matchAgent;
+  });
+
+  const nonSystemAgents = agents.filter((a) => !a.isSystem);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Import GitHub */}
+      <div className="flex gap-2">
+        <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
+          placeholder="URL GitHub fichier .md (skill)…"
+          className="flex-1 bg-graphite border border-crystal rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40" />
+        <Button variant="ghost" size="sm" loading={importing} disabled={!githubUrl.trim()} onClick={handleImportGithub}>
+          <Download size={12} /> Importer
+        </Button>
+      </div>
+
+      {/* Filtres */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-silk/25 pointer-events-none" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un skill…"
+            className="w-full bg-graphite border border-crystal rounded-lg pl-7 pr-3 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40" />
+        </div>
+        <select value={filterAgent} onChange={(e) => setFilterAgent(e.target.value)}
+          className="bg-graphite border border-crystal rounded-lg px-2 py-1.5 text-xs text-silk/60 focus:outline-none">
+          <option value="all">Tous les agents</option>
+          {nonSystemAgents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+
+      <p className="text-[10px] text-silk/30">{filtered.length} skill{filtered.length > 1 ? "s" : ""}</p>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-8 text-silk/30 text-xs">
+          {skills.length === 0 ? "Aucun skill installé. Installe un pack ou crée un skill." : "Aucun résultat."}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {filtered.map((skill) => (
+            <div key={skill.id} className={cn(
+              "flex items-start gap-3 p-3 rounded-xl border transition-all group",
+              skill.isActive ? "bg-electric/5 border-electric/20" : "bg-graphite border-crystal/50",
+            )}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-medium text-silk">{skill.name}</p>
+                  {skill.isActive && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Actif</span>}
+                  {skill.inheritToAll && <span className="text-[8px] bg-mystic/15 text-mystic px-1.5 py-0.5 rounded-full">🌐</span>}
+                  {skill.createdBy === "system" && <span className="text-[8px] text-silk/25">pack</span>}
+                </div>
+                <p className="text-[10px] text-silk/40 mt-0.5 line-clamp-1">{skill.description}</p>
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {skill.agentIds.slice(0, 5).map((aid) => (
+                    <span key={aid} className="text-[8px] bg-crystal/40 text-silk/40 px-1.5 py-0.5 rounded-full">{aid}</span>
+                  ))}
+                  {skill.agentIds.length === 0 && <span className="text-[8px] text-warning/40">Aucun agent assigné</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                <button onClick={() => onEdit(skill)}
+                  className="w-6 h-6 rounded flex items-center justify-center text-silk/25 hover:text-electric/60">
+                  <Pencil size={11} />
+                </button>
+                <button onClick={() => deleteSkill(skill.id)}
+                  className="w-6 h-6 rounded flex items-center justify-center text-silk/20 hover:text-danger">
+                  <Trash2 size={11} />
+                </button>
+                <button onClick={() => useAgentStore.getState().toggleSkill(skill.id)}
+                  className="text-silk/30 hover:text-silk/70">
+                  {skill.isActive ? <ToggleRight size={16} className="text-electric" /> : <ToggleLeft size={16} />}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -423,11 +570,61 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
 
 // ── Onglet MCP ────────────────────────────────────────────────────────────────
 
+interface CustomMcpEntry { id: string; name: string; description: string; package: string; icon: string }
+
 function McpTab() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filterOfficial, setFilterOfficial] = useState<"all" | "official" | "community">("all");
+  const [customMcps, setCustomMcps] = useState<CustomMcpEntry[]>([]);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
 
-  const filtered = MCP_CATALOG.filter((s) => {
+  const handleImportMcp = async () => {
+    if (!githubUrl.trim()) return;
+    setImporting(true); setImportError("");
+    try {
+      // Extraire owner/repo depuis l'URL GitHub
+      const match = githubUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+      if (!match) throw new Error("URL GitHub invalide (format: github.com/owner/repo)");
+      const [, owner, repo] = match;
+      const repoClean = repo.replace(/\.git$/, "").replace(/[?#].*/, "");
+
+      // Essayer de lire package.json pour obtenir le vrai nom npm
+      let pkgName = `${owner}/${repoClean}`;
+      try {
+        const pkgJson = await invoke<string>("http_custom_call", {
+          url: `https://raw.githubusercontent.com/${owner}/${repoClean}/main/package.json`,
+          method: "GET", headers: [], body: null,
+        });
+        const pkg = JSON.parse(pkgJson);
+        if (pkg.name) pkgName = pkg.name;
+      } catch { /* package.json absent, on utilise le nom du repo */ }
+
+      // Lire README pour la description
+      let description = `Serveur MCP ${repoClean}`;
+      try {
+        const readme = await invoke<string>("http_custom_call", {
+          url: `https://raw.githubusercontent.com/${owner}/${repoClean}/main/README.md`,
+          method: "GET", headers: [], body: null,
+        });
+        const firstLine = readme.split("\n").find((l) => !l.startsWith("#") && l.trim());
+        if (firstLine) description = firstLine.trim().slice(0, 120);
+      } catch { /* README absent */ }
+
+      setCustomMcps((prev) => [...prev, {
+        id: `mcp-custom-${Date.now()}`,
+        name: repoClean,
+        description,
+        package: `npx -y ${pkgName}`,
+        icon: "🔧",
+      }]);
+      setGithubUrl("");
+    } catch (e) { setImportError(String(e)); }
+    finally { setImporting(false); }
+  };
+
+  const filtered = [...MCP_CATALOG].filter((s) => {
     if (filterOfficial === "official") return s.official;
     if (filterOfficial === "community") return !s.official;
     return true;
@@ -449,6 +646,48 @@ function McpTab() {
           Chaque serveur expose ses outils automatiquement aux agents.
         </p>
       </div>
+
+      {/* Import depuis GitHub */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-2">
+          <input value={githubUrl} onChange={(e) => { setGithubUrl(e.target.value); setImportError(""); }}
+            placeholder="URL GitHub d'un serveur MCP (github.com/user/repo)…"
+            className="flex-1 bg-graphite border border-crystal rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40" />
+          <Button variant="ghost" size="sm" loading={importing} disabled={!githubUrl.trim()} onClick={handleImportMcp}>
+            <Download size={12} /> Importer
+          </Button>
+        </div>
+        {importError && <p className="text-[10px] text-danger/70">{importError}</p>}
+      </div>
+
+      {/* Serveurs importés */}
+      {customMcps.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest">Importés</p>
+          {customMcps.map((s) => (
+            <div key={s.id} className="bg-graphite border border-crystal/50 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{s.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-silk">{s.name}</p>
+                  <p className="text-[10px] text-silk/40 truncate">{s.description}</p>
+                  <code className="text-[9px] text-electric/60 font-mono">{s.package}</code>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => { navigator.clipboard.writeText(s.package); setCopiedId(s.id); setTimeout(() => setCopiedId(null), 2000); }}
+                    className="flex items-center gap-1 text-[9px] text-silk/30 hover:text-silk/60 border border-crystal/40 rounded-lg px-2 py-0.5">
+                    {copiedId === s.id ? <><Check size={9} className="text-success" /> Copié</> : <><Copy size={9} /> Copier</>}
+                  </button>
+                  <button onClick={() => setCustomMcps((p) => p.filter((m) => m.id !== s.id))}
+                    className="w-6 h-6 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10">
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-1.5">
         {(["all", "official", "community"] as const).map((f) => (

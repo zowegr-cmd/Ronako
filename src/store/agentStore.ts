@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Agent, Team, Skill } from "@/types";
+import type { Agent, Team, Skill, SkillPack } from "@/types";
 import { DEFAULT_AGENTS, CONSULTANT_AGENTS, ALPHA_TEAM, SYSTEM_AGENT_IDS } from "@/lib/agents/defaultTeam";
 import { SKILL_PACKS, materializeSkillPack } from "@/lib/skillPacks";
 import { generateId, now } from "@/lib/utils";
@@ -37,6 +37,12 @@ interface AgentStore {
   addConsultant: (data: Omit<Agent, "id">) => Agent;
   updateConsultant: (id: string, updates: Partial<Agent>) => void;
   deleteConsultant: (id: string) => void;
+  // ── Packs custom ─────────────────────────────────────────────────
+  customPacks: SkillPack[];
+  addCustomPack: (pack: Omit<SkillPack, "id">) => SkillPack;
+  updateCustomPack: (id: string, updates: Partial<SkillPack>) => void;
+  deleteCustomPack: (id: string) => void;
+  installCustomPack: (packId: string) => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -46,6 +52,7 @@ export const useAgentStore = create<AgentStore>()(
       teams: [ALPHA_TEAM],
       skills: [],
       consultants: CONSULTANT_AGENTS,
+      customPacks: [],
 
       // ── Agents principaux ───────────────────────────────────────
       addAgent: (data) => {
@@ -163,10 +170,29 @@ export const useAgentStore = create<AgentStore>()(
       },
 
       deleteConsultant: (id) => {
-        if (BUILTIN_CONSULTANT_IDS.has(id)) return; // natifs protégés
-        set((s) => ({
-          consultants: s.consultants.filter((c) => c.id !== id),
-        }));
+        if (BUILTIN_CONSULTANT_IDS.has(id)) return;
+        set((s) => ({ consultants: s.consultants.filter((c) => c.id !== id) }));
+      },
+
+      // ── Packs custom ──────────────────────────────────────────────
+      addCustomPack: (pack) => {
+        const newPack: SkillPack = { ...pack, id: `custom-pack-${generateId()}` };
+        set((s) => ({ customPacks: [...s.customPacks, newPack] }));
+        return newPack;
+      },
+      updateCustomPack: (id, updates) =>
+        set((s) => ({ customPacks: s.customPacks.map((p) => p.id === id ? { ...p, ...updates } : p) })),
+      deleteCustomPack: (id) =>
+        set((s) => ({ customPacks: s.customPacks.filter((p) => p.id !== id) })),
+      installCustomPack: (packId) => {
+        const pack = get().customPacks.find((p) => p.id === packId);
+        if (!pack) return;
+        const newSkills = materializeSkillPack(pack);
+        set((s) => {
+          const existingIds = new Set(s.skills.map((sk) => sk.id));
+          const toAdd = newSkills.filter((sk) => !existingIds.has(sk.id));
+          return { skills: [...s.skills, ...toAdd] };
+        });
       },
     }),
     { name: "ronako-agents-v1" }
