@@ -28,7 +28,7 @@ import { CHAIN_MODES, getDefaultAgentsForMode, type ChainMode } from "@/lib/chai
 import { estimateChainCost, formatCentsEstimate } from "@/lib/costEstimator";
 import { AGENT_DELIVERABLE_DESCRIPTIONS, DELIVERABLE_FORMATS } from "@/lib/formatSelector";
 import { FORMAT_REQUIREMENTS } from "@/lib/formatRequirements";
-import { analyzeCustomDeliverable, type CustomDeliverableInsight } from "@/lib/customDeliverableAnalyzer";
+import { analyzeCustomDeliverable, inferFormatsFromBrief, type CustomDeliverableInsight } from "@/lib/customDeliverableAnalyzer";
 import type { ChainProposal, ProposedAgent, Agent, OptimizerSuggestion } from "@/types";
 import type { ConnectorKeys } from "@/store/settingsStore";
 import { cn } from "@/lib/utils";
@@ -82,9 +82,9 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
   const { skills: allSkills, setTemporarySkills, toggleSkill } = useAgentStore();
   const { getConnectorKey } = useSettingsStore();
 
-  // Défaut intelligent au premier rendu selon le contexte
+  // Pré-sélection intelligente basée sur le brief Marcus + contexte dossier
   useEffect(() => {
-    setSelectedFormats(hasFolder ? ["prompt_cc"] : ["markdown"]);
+    setSelectedFormats(inferFormatsFromBrief(proposal.brief, hasFolder));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

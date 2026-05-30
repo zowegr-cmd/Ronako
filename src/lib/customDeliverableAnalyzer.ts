@@ -43,7 +43,7 @@ const RULES: Rule[] = [
     },
   },
   {
-    pattern: /powerpoint|pptx|présentation.*slide|slide.*deck/i,
+    pattern: /power\s*point|pptx|présentation.*slide|slide.*deck/i,
     insight: {
       message: "💡 Pour un .pptx, python-pptx via E2B sandbox peut générer des slides structurées.",
       blocking: false,
@@ -167,6 +167,35 @@ const RULES: Rule[] = [
     },
   },
 ];
+
+// Analyse le brief Marcus pour pré-sélectionner les formats pertinents
+export function inferFormatsFromBrief(brief: string, hasFolder: boolean): string[] {
+  const t = brief.toLowerCase();
+  const formats: string[] = [];
+
+  if (/code|développement|technique|script|claude code|api\b|app\b/.test(t) || hasFolder)
+    formats.push("prompt_cc");
+
+  if (/synthèse|rapport|document|analyse|bilan|résumé|guide|stratégie/.test(t) || formats.length === 0)
+    formats.push("markdown");
+
+  if (/email|newsletter|séquence.*mail|mail.*séquence|campagne.*email/.test(t))
+    formats.push("email_sequence");
+
+  if (/social|post|instagram|linkedin|twitter|tiktok|réseaux/.test(t))
+    formats.push("social_posts");
+
+  if (/plan d'action|roadmap|étapes|actions|planning|feuille de route/.test(t))
+    formats.push("action_plan");
+
+  // Notion mentionné explicitement dans le brief
+  if (/notion\b/.test(t)) formats.push("notion");
+
+  // Fallback si rien n'a matché
+  if (formats.length === 0) formats.push(hasFolder ? "prompt_cc" : "markdown");
+
+  return [...new Set(formats)]; // dédoublonner
+}
 
 export function analyzeCustomDeliverable(text: string): CustomDeliverableInsight | null {
   if (!text.trim()) return null;
