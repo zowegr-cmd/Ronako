@@ -178,3 +178,116 @@ export function mockAgentResponse(agent: Agent, prompt: string): AgentResult {
     cost: calculateCost(agent.model, inputTokens, outputTokens),
   };
 }
+
+// ─── Tool definitions (Phase 8) ──────────────────────────────────────────────
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+export interface ToolKeys {
+  openai?: string;
+  bfl?: string;
+  e2b?: string;
+  notion?: string;
+  github?: string;
+  tavily?: string;
+}
+
+const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
+  openai: {
+    name: "generate_image_dalle",
+    description: "Génère une image haute qualité avec DALL-E 3. Utilise pour créer des illustrations, visuels, logos ou images pour un projet.",
+    input_schema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Description détaillée de l'image à générer en anglais" },
+        size: { type: "string", enum: ["1024x1024", "1792x1024", "1024x1792"], description: "Taille de l'image" },
+      },
+      required: ["prompt"],
+    },
+  },
+  bfl: {
+    name: "generate_image_flux",
+    description: "Génère une image avec Flux Pro. Plus rapide et moins cher que DALL-E. Utilise pour les itérations rapides.",
+    input_schema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "Description de l'image à générer en anglais" },
+      },
+      required: ["prompt"],
+    },
+  },
+  e2b: {
+    name: "execute_code",
+    description: "Exécute du code Python ou Node.js dans un environnement sécurisé. Peut générer des fichiers Excel (.xlsx), PDF, PowerPoint (.pptx) ou tout autre fichier.",
+    input_schema: {
+      type: "object",
+      properties: {
+        language: { type: "string", enum: ["python", "node"], description: "Langage de programmation" },
+        code: { type: "string", description: "Code à exécuter" },
+        packages: { type: "array", items: { type: "string" }, description: "Packages à installer (ex: ['openpyxl', 'reportlab'])" },
+      },
+      required: ["language", "code"],
+    },
+  },
+  notion: {
+    name: "export_to_notion",
+    description: "Exporte le livrable directement dans Notion comme une nouvelle page.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Titre de la page" },
+        content: { type: "string", description: "Contenu en Markdown" },
+        database_id: { type: "string", description: "ID de la database Notion (optionnel)" },
+      },
+      required: ["title", "content"],
+    },
+  },
+  github: {
+    name: "github_push",
+    description: "Pousse du contenu dans un repository GitHub.",
+    input_schema: {
+      type: "object",
+      properties: {
+        repo: { type: "string", description: "Format owner/repo" },
+        path: { type: "string", description: "Chemin du fichier dans le repo" },
+        content: { type: "string", description: "Contenu du fichier" },
+        message: { type: "string", description: "Message de commit" },
+      },
+      required: ["repo", "path", "content", "message"],
+    },
+  },
+  tavily: {
+    name: "web_search",
+    description: "Effectue une recherche web en temps réel via Tavily. Utilise pour obtenir des informations actuelles ou vérifier des données.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Requête de recherche" },
+        max_results: { type: "integer", description: "Nombre maximum de résultats (défaut: 5)" },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+/**
+ * Construit les définitions d'outils pour un agent selon ses connecteurs actifs.
+ * Tout connecteur peut être assigné à tout agent — pas de restriction.
+ */
+export function buildToolDefinitions(
+  connectorIds: string[],
+  toolKeys: ToolKeys,
+): ToolDefinition[] {
+  return connectorIds
+    .filter((id) => {
+      const key = toolKeys[id as keyof ToolKeys];
+      return key && key.length > 0 && TOOL_DEFINITIONS[id];
+    })
+    .map((id) => TOOL_DEFINITIONS[id]);
+}
+
+export type { ToolDefinition as ToolDef };

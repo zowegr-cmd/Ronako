@@ -522,19 +522,19 @@ OUTILS À IMPLÉMENTER (JSON schemas) :
 
 ─────────────────────────────────────────────────────────────────
 
-[ ] 8A — Images en direct (Phase 8A — rapide)
+[x] 8A — Images en direct (Phase 8A — rapide)
          DALL-E 3 et Flux dans la boucle tool use
          Axel appelle generate_image → image dans le livrable
          Coût affiché par image dans DeliverablePanel
          ConnectorKeys: openai (DALL-E), bfl (Flux)
 
-[ ] 8B — Exécution de code (Phase 8B — gros impact)
+[x] 8B — Exécution de code (Phase 8B — gros impact)
          E2B sandbox : Python + Node.js
          Sam appelle execute_code → génère vrai .xlsx/.pptx/.pdf
          Téléchargement depuis DeliverablePanel (base64 → Blob)
          ConnectorKeys: e2b
 
-[ ] 8C — Intégrations externes (Phase 8C)
+[x] 8C — Intégrations externes (Phase 8C)
          Notion : Ella exporte le livrable directement
          GitHub : Sam crée commits/PRs réels
          Tavily : intégrer dans la boucle (déjà partiellement fait)

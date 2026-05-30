@@ -443,6 +443,85 @@ Phase 8A — Tool use images (DALL-E / Flux dans la boucle Rust).
 
 ---
 
+## SESSION 2026-05-30 — Phase 8 Tool Use (8A+8B+8C)
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ Rust — src-tauri/src/tools/ (nouveau module)
+   mod.rs    : types ToolKeys/ToolResult/ToolUseEvent/ToolResultEvent
+               dispatcher execute_tool() + helpers visuals_dir/outputs_dir/download_image
+   dalle.rs  : DALL-E 3 — POST OpenAI, download image, sauvegarde locale
+   flux.rs   : Flux Pro 1.1 — POST + polling BFL, download image
+   e2b.rs    : E2B sandbox — create/execute/get-files/destroy + base64 inline decoder
+   notion.rs : export page Notion (Markdown → blocs paragraphes)
+   github.rs : push fichier GitHub (base64 inline encoder, gère SHA existant)
+   tavily.rs : web search (migration depuis commands.rs)
+
+✅ anthropic.rs — ajout anthropic_stream_with_tools() SANS toucher anthropic_stream()
+   Boucle tool_use : non-streaming → execute_tool() → tool_result → loop
+   Émet events : anthropic-tool-use-{id}, anthropic-tool-result-{id}, anthropic-chunk-{id}, anthropic-done-{id}
+   Max 10 tours pour éviter les boucles infinies
+
+✅ lib.rs — mod tools; + handler anthropic_stream_with_tools
+
+✅ chainEngine.ts — buildToolDefinitions(connectorIds, keys)
+   6 outils : dalle, flux, e2b, notion, github, tavily
+   Pas de restriction par agent — tout connecteur assignable partout
+
+✅ useChainRunner.ts — routing pour chaque agent :
+   agent.connectors → buildToolDefinitions → si tools.length > 0 → invoke anthropic_stream_with_tools
+   Sinon → stream() existant
+   Events tool-use/tool-result → addWorkspaceMessage + dispatch "tool-result" event
+
+✅ DeliverablePanel.tsx — onglets Visuels + Fichiers
+   Écoute "tool-result" event DOM
+   Visuels : grid images avec convertFileSrc + download
+   Fichiers (E2B) : liste avec download via writeFile
+
+✅ TypeScript 0 erreurs + Rust 0 warnings
+```
+
+### FICHIERS CRÉÉS
+```
+src-tauri/src/tools/mod.rs
+src-tauri/src/tools/dalle.rs
+src-tauri/src/tools/flux.rs
+src-tauri/src/tools/e2b.rs
+src-tauri/src/tools/notion.rs
+src-tauri/src/tools/github.rs
+src-tauri/src/tools/tavily.rs
+```
+
+### FICHIERS MODIFIÉS
+```
+src-tauri/src/anthropic.rs   (ajout anthropic_stream_with_tools)
+src-tauri/src/lib.rs         (mod tools + handler)
+src/lib/chainEngine.ts       (buildToolDefinitions + ToolDefinition types)
+src/hooks/useChainRunner.ts  (routing tool use vs stream pur)
+src/components/workspace/DeliverablePanel.tsx (onglets Visuels + Fichiers)
+```
+
+### ARCHITECTURE
+```
+Pour chaque agent dans la chaîne :
+  1. agent.connectors → buildToolDefinitions(ids, keys)
+  2. Si tools.length > 0 :
+     → invoke("anthropic_stream_with_tools") avec tools[] + tool_keys
+     → Rust boucle : call → tool_use? → execute → tool_result → call → ...
+     → Events frontend : tool-use (spinner) + tool-result (image/fichier)
+  3. Sinon → stream() texte pur existant (unchanged)
+```
+
+### ÉTAT ACTUEL
+Phase 8 livrée — Tool use réel opérationnel.
+Rust 0 warning, TypeScript 0 erreur.
+
+### PROCHAINE SESSION
+Tester avec un agent DALL-E ou Flux.
+Ou Phase 9 selon roadmap.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

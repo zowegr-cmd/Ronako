@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, FileText, Code2, Check, Download, ChevronDown, ChevronUp, RefreshCw, Terminal } from "lucide-react";
+import { Copy, FileText, Code2, Check, Download, ChevronDown, ChevronUp, RefreshCw, Terminal, Image, FolderOpen } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { writeFile } from "@tauri-apps/plugin-fs";
 import { formatForClaudeCode, extractClaudeCodeBlock } from "@/lib/claudeCodeFormatter";
 import { generateClientReport } from "@/lib/clientReportGenerator";
 import { save } from "@tauri-apps/plugin-dialog";
@@ -16,7 +19,25 @@ import { MarkdownMessage } from "@/components/ui/MarkdownMessage";
 import { formatCost, formatTokens } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-type PanelView = "outputs" | "stats" | "presentation";
+type PanelView = "outputs" | "stats" | "presentation" | "visuals" | "files";
+
+interface GeneratedVisual {
+  id: string;
+  local_path: string;
+  url?: string;
+  model: string;
+  prompt: string;
+  cost_cents: number;
+  agentId?: string;
+}
+
+interface GeneratedFile {
+  id: string;
+  name: string;
+  local_path: string;
+  size_bytes: number;
+  agentId?: string;
+}
 
 export function DeliverablePanel() {
   const { run, ryoResult, realCost, relaySavedTokens, relayCallCount } = useChainStore();
@@ -28,6 +49,58 @@ export function DeliverablePanel() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [view, setView] = useState<PanelView>("outputs");
   const [presentationIndex, setPresentationIndex] = useState(0);
+  const [visuals, setVisuals] = useState<GeneratedVisual[]>([]);
+  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
+
+  // Écouter les résultats d'outils depuis useChainRunner
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { tool_name, metadata } = (e as CustomEvent).detail as {
+        tool_name: string;
+        is_error: boolean;
+        metadata?: Record<string, unknown>;
+      };
+      if (!metadata) return;
+      if (tool_name === "generate_image_dalle" || tool_name === "generate_image_flux") {
+        const local_path = String(metadata.local_path ?? "");
+        if (local_path) {
+          setVisuals((prev) => [...prev, {
+            id: String(Date.now()),
+            local_path,
+            url: String(metadata.url ?? ""),
+            model: String(metadata.model ?? tool_name),
+            prompt: String(metadata.prompt ?? ""),
+            cost_cents: Number(metadata.cost_cents ?? 0),
+          }]);
+        }
+      }
+      if (tool_name === "execute_code") {
+        const files = (metadata.files as Array<{ name: string; local_path: string; size_bytes: number }>) ?? [];
+        for (const f of files) {
+          setGeneratedFiles((prev) => [...prev, {
+            id: String(Date.now()) + f.name,
+            name: f.name,
+            local_path: f.local_path,
+            size_bytes: f.size_bytes,
+          }]);
+        }
+      }
+    };
+    document.addEventListener("tool-result", handler);
+    return () => document.removeEventListener("tool-result", handler);
+  }, []);
+
+  const downloadFile = useCallback(async (filePath: string, name: string) => {
+    try {
+      const dest = await saveDialog({ defaultPath: name });
+      if (dest) {
+        const response = await fetch(convertFileSrc(filePath));
+        const buffer = await response.arrayBuffer();
+        await writeFile(dest, new Uint8Array(buffer));
+        toast.success("Téléchargé", name);
+      }
+    } catch (e) { toast.error("Erreur téléchargement", String(e)); }
+  }, [toast]);
 
   const project = getActiveProject();
   const completedMessages = run.messages.filter((m) => m.role === "assistant");
@@ -199,7 +272,7 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
       )}
 
       {/* ── Tabs views ───────────────────────────────────────────── */}
-      <div className="flex gap-0.5 px-3 pt-2 shrink-0">
+      <div className="flex gap-0.5 px-3 pt-2 shrink-0 flex-wrap">
         {(["outputs", "stats", "presentation"] as PanelView[]).map((v) => (
           <button key={v} onClick={() => setView(v)}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
@@ -208,6 +281,22 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
             {v === "outputs" ? "📄 Outputs" : v === "stats" ? "📊 Stats" : "🎯 Présentation"}
           </button>
         ))}
+        {visuals.length > 0 && (
+          <button onClick={() => setView("visuals")}
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+              view === "visuals" ? "bg-electric/15 text-electric" : "text-silk/30 hover:text-silk/60 hover:bg-crystal/50"
+            }`}>
+            <Image size={10} /> Visuels ({visuals.length})
+          </button>
+        )}
+        {generatedFiles.length > 0 && (
+          <button onClick={() => setView("files")}
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+              view === "files" ? "bg-electric/15 text-electric" : "text-silk/30 hover:text-silk/60 hover:bg-crystal/50"
+            }`}>
+            <FolderOpen size={10} /> Fichiers ({generatedFiles.length})
+          </button>
+        )}
       </div>
 
       {/* ── Messages scrollables ──────────────────────────────────── */}
@@ -355,6 +444,69 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── Onglet Visuels (Phase 8A) ────────────────────────────── */}
+      {view === "visuals" && (
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
+          {visuals.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-silk/30 text-xs">Aucun visuel généré</div>
+          ) : visuals.map((v) => (
+            <div key={v.id} className="bg-graphite-light border border-crystal rounded-xl overflow-hidden">
+              <img
+                src={convertFileSrc(v.local_path)}
+                alt={v.prompt}
+                className="w-full object-cover"
+                style={{ maxHeight: 200 }}
+                onError={(e) => {
+                  // Fallback sur l'URL distante si le chemin local ne fonctionne pas
+                  if (v.url) (e.target as HTMLImageElement).src = v.url;
+                }}
+              />
+              <div className="px-3 py-2">
+                <p className="text-[10px] text-silk/50 leading-relaxed">{v.prompt}</p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[9px] text-silk/25">{v.model} · ~€{(v.cost_cents / 100).toFixed(3)}</span>
+                  <button
+                    onClick={() => downloadFile(v.local_path, `image-${v.id}.png`)}
+                    className="flex items-center gap-1 text-[10px] text-electric/60 hover:text-electric transition-colors">
+                    <Download size={10} /> Télécharger
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Onglet Fichiers (Phase 8B) ────────────────────────────── */}
+      {view === "files" && (
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 min-h-0">
+          {generatedFiles.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-silk/30 text-xs">Aucun fichier généré</div>
+          ) : generatedFiles.map((f) => {
+            const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+            const icon = ext === "xlsx" || ext === "csv" ? "📊"
+              : ext === "pdf" ? "📑"
+              : ext === "pptx" ? "📊"
+              : ext === "docx" ? "📝"
+              : "📄";
+            return (
+              <div key={f.id} className="flex items-center gap-3 bg-graphite-light border border-crystal rounded-xl px-3 py-2.5">
+                <span className="text-xl shrink-0">{icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-silk truncate">{f.name}</p>
+                  <p className="text-[10px] text-silk/30">{(f.size_bytes / 1024).toFixed(1)} Ko</p>
+                </div>
+                <button
+                  onClick={() => downloadFile(f.local_path, f.name)}
+                  className="flex items-center gap-1 text-[10px] text-electric/70 hover:text-electric border border-electric/30 rounded-lg px-2 py-1 transition-all shrink-0">
+                  <Download size={10} /> Télécharger
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -1,6 +1,7 @@
 mod commands;
 mod anthropic;
 mod folder;
+pub mod tools;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,6 +24,7 @@ pub fn run() {
             commands::stop_journal_watch,
             anthropic::anthropic_stream,
             anthropic::anthropic_abort,
+            anthropic::anthropic_stream_with_tools,
             folder::read_project_folder,
             commands::tavily_search,
             // Bibliothèque livrables

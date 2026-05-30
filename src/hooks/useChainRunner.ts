@@ -4,7 +4,7 @@ import { useAgentStore } from "@/store/agentStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useToastStore } from "@/store/toastStore";
 import { useProjectStore } from "@/store/projectStore";
-import { buildAgentPrompt, buildRelayPrompt, mockAgentResponse } from "@/lib/chainEngine";
+import { buildAgentPrompt, buildRelayPrompt, mockAgentResponse, buildToolDefinitions, type ToolKeys } from "@/lib/chainEngine";
 import { calculateCost, estimateTokens } from "@/lib/tokenCounter";
 import { estimateRelaySavings, DNA_SYSTEM_PROMPT } from "@/lib/projectDNA";
 import { buildDependencyContext } from "@/lib/dependencyMatrix";
@@ -25,6 +25,9 @@ import { useSounds } from "./useSounds";
 import { RELAY_AGENT } from "@/lib/agents/defaultTeam";
 import { tavilySearch, formatTavilyForPrompt } from "@/lib/connectors/tavily";
 import type { Agent } from "@/types";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { generateId } from "@/lib/utils";
 
 export function useChainRunner(teamId: string) {
   const abortRef = useRef(false);
@@ -259,6 +262,19 @@ export function useChainRunner(teamId: string) {
             continue;
           }
 
+          // ── Phase 8 — Tool Use : router vers la bonne commande ───
+          const agentConnectorIds = agent.connectors ?? [];
+          const toolKeyMap: ToolKeys = {
+            openai:  connectorKeys.openai,
+            bfl:     connectorKeys.bfl,
+            e2b:     connectorKeys.e2b,
+            notion:  connectorKeys.notion,
+            github:  connectorKeys.github,
+            tavily:  connectorKeys.tavily,
+          };
+          const agentTools = buildToolDefinitions(agentConnectorIds, toolKeyMap);
+          const useToolsApi = agentTools.length > 0;
+
           let inputTokens = estimateTokens(prompt);
           let outputTokens = 0;
           let fullText = "";
@@ -271,22 +287,77 @@ export function useChainRunner(teamId: string) {
             apiError = "";
 
             setStreaming(agent.id);
-            await new Promise<void>((resolve) => {
-              stream({
-                apiKey,
-                model: agent.model,
-                systemPrompt: agent.systemPrompt,
-                userMessage: prompt,
-                onChunk: (chunk) => { appendStreaming(chunk); fullText += chunk; },
-                onDone: (text, inTok, outTok) => {
-                  fullText = text;
-                  inputTokens = inTok || estimateTokens(prompt);
-                  outputTokens = outTok || estimateTokens(text);
-                  resolve();
-                },
-                onError: (err) => { apiError = err; resolve(); },
+
+            if (useToolsApi) {
+              // ── Tool Use : invoke Rust directement ───────────────
+              const reqId = generateId();
+              const unlisteners: Array<() => void> = [];
+
+              await new Promise<void>((resolve) => {
+                const setup = async () => {
+                  const unChunk = await listen<string>(`anthropic-chunk-${reqId}`, (ev) => {
+                    appendStreaming(ev.payload); fullText += ev.payload;
+                  });
+                  const unDone = await listen<{ input_tokens: number; output_tokens: number }>(`anthropic-done-${reqId}`, (ev) => {
+                    inputTokens = ev.payload.input_tokens || estimateTokens(prompt);
+                    outputTokens = ev.payload.output_tokens || estimateTokens(fullText);
+                    unlisteners.forEach((fn) => fn());
+                    resolve();
+                  });
+                  const unErr = await listen<string>(`anthropic-error-${reqId}`, (ev) => {
+                    apiError = ev.payload;
+                    unlisteners.forEach((fn) => fn());
+                    resolve();
+                  });
+                  // Tool use events → ajouter message système dans le chat
+                  const unToolUse = await listen<{ tool_name: string; tool_use_id: string; input: unknown }>(`anthropic-tool-use-${reqId}`, (ev) => {
+                    const { tool_name } = ev.payload;
+                    const label = tool_name === "generate_image_dalle" ? "🎨 DALL-E génère une image…"
+                      : tool_name === "generate_image_flux" ? "🎨 Flux génère une image…"
+                      : tool_name === "execute_code" ? "⚙️ E2B exécute le code…"
+                      : tool_name === "web_search" ? "🔍 Recherche web…"
+                      : tool_name === "export_to_notion" ? "📓 Export Notion…"
+                      : tool_name === "github_push" ? "🐙 Push GitHub…"
+                      : `⚙️ ${tool_name}…`;
+                    addWorkspaceMessage({ role: "system", content: label, agentId: agent.id });
+                  });
+                  const unToolResult = await listen<{ tool_name: string; result: string; is_error: boolean; metadata?: unknown }>(`anthropic-tool-result-${reqId}`, (ev) => {
+                    const { tool_name, is_error, metadata } = ev.payload;
+                    // Dispatch event pour DeliverablePanel
+                    document.dispatchEvent(new CustomEvent("tool-result", { detail: { tool_name, is_error, metadata } }));
+                  });
+                  unlisteners.push(unChunk, unDone, unErr, unToolUse, unToolResult);
+
+                  invoke("anthropic_stream_with_tools", {
+                    apiKey, model: agent.model,
+                    systemPrompt: agent.systemPrompt,
+                    userMessage: prompt,
+                    requestId: reqId,
+                    tools: agentTools,
+                    toolKeys: toolKeyMap,
+                  }).catch((e) => { apiError = String(e); unlisteners.forEach((fn) => fn()); resolve(); });
+                };
+                setup();
               });
-            });
+            } else {
+              // ── Streaming texte pur (existant) ───────────────────
+              await new Promise<void>((resolve) => {
+                stream({
+                  apiKey,
+                  model: agent.model,
+                  systemPrompt: agent.systemPrompt,
+                  userMessage: prompt,
+                  onChunk: (chunk) => { appendStreaming(chunk); fullText += chunk; },
+                  onDone: (text, inTok, outTok) => {
+                    fullText = text;
+                    inputTokens = inTok || estimateTokens(prompt);
+                    outputTokens = outTok || estimateTokens(text);
+                    resolve();
+                  },
+                  onError: (err) => { apiError = err; resolve(); },
+                });
+              });
+            }
 
             // Output valide (>50 chars et pas d'erreur) → sortir de la boucle
             if (!apiError && fullText.length > 50) break;
