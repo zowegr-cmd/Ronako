@@ -36,10 +36,10 @@ static API_REGISTRY: &[(&str, &str, &str)] = &[
     ("plausible",   "https://plausible.io/api/v1",         "bearer"),
     // ── Nouveaux connecteurs Phase 10 ─────────────────────────────────────────
     ("perplexity",  "https://api.perplexity.ai",           "bearer"),
-    ("deepgram",    "https://api.deepgram.com/v1",         "header:Authorization:Token"),
-    ("maps",        "https://maps.googleapis.com/maps/api","none"),
-    ("weather",     "https://api.openweathermap.org/data/2.5","none"),
-    ("hunter",      "https://api.hunter.io/v2",            "none"),
+    ("deepgram",    "https://api.deepgram.com/v1",         "header:Authorization:Token"),  // → Authorization: Token {key}
+    ("maps",        "https://maps.googleapis.com/maps/api","query:key"),   // → ?key={api_key}
+    ("weather",     "https://api.openweathermap.org/data/2.5","query:appid"), // → ?appid={key}
+    ("hunter",      "https://api.hunter.io/v2",            "query:api_key"), // → ?api_key={key}
     ("groq",        "https://api.groq.com/openai/v1",      "bearer"),
     ("twilio_sms",  "https://api.twilio.com/2010-04-01",   "basic"),
 ];
@@ -76,32 +76,51 @@ pub async fn execute(
         },
     };
 
-    // Construction de l'URL
+    let method = input["method"].as_str().unwrap_or("GET").to_uppercase();
+    let body = input["body"].as_object().map(|b| serde_json::to_string(b).unwrap_or_default());
+
+    // Auth + construction URL (l'ordre compte : query param modifie l'URL)
+    let mut headers: Vec<(String, String)> = vec![];
+
     let endpoint = input["endpoint"].as_str().unwrap_or("/");
-    let url = if endpoint.starts_with("http") {
+    let base_endpoint = if endpoint.starts_with("http") {
         endpoint.to_string()
     } else {
         format!("{}{}", base_url.trim_end_matches('/'), endpoint)
     };
 
-    let method = input["method"].as_str().unwrap_or("GET").to_uppercase();
-    let body = input["body"].as_object().map(|b| serde_json::to_string(b).unwrap_or_default());
-
-    // Headers d'authentification
-    let mut headers: Vec<(String, String)> = vec![];
-    match auth_type {
-        "bearer"       => headers.push(("Authorization".into(), format!("Bearer {}", api_key))),
-        "basic"        => {
-            // Pour Twilio et autres : format "sid:token" encodé en base64
+    let url = match auth_type {
+        "bearer" => {
+            headers.push(("Authorization".into(), format!("Bearer {}", api_key)));
+            base_endpoint
+        }
+        "basic" => {
             let encoded = base64_basic(&api_key);
             headers.push(("Authorization".into(), format!("Basic {}", encoded)));
+            base_endpoint
         }
-        auth if auth.starts_with("header:") => {
-            let header_name = &auth[7..];
-            headers.push((header_name.to_string(), api_key.clone()));
+        // header:{NomHeader} → NomHeader: {key}
+        // header:{NomHeader}:{Prefix} → NomHeader: {Prefix} {key}
+        auth_t if auth_t.starts_with("header:") => {
+            let rest = &auth_t[7..];
+            let parts: Vec<&str> = rest.splitn(2, ':').collect();
+            let header_name = parts[0];
+            let value = if parts.len() > 1 {
+                format!("{} {}", parts[1], api_key)
+            } else {
+                api_key.clone()
+            };
+            headers.push((header_name.to_string(), value));
+            base_endpoint
         }
-        _ => {} // none — pas d'auth
-    }
+        // query:{param_name} → ?param_name={key} ajouté à l'URL
+        auth_t if auth_t.starts_with("query:") => {
+            let param_name = &auth_t[6..];
+            let sep = if base_endpoint.contains('?') { "&" } else { "?" };
+            format!("{}{}{}={}", base_endpoint, sep, param_name, api_key)
+        }
+        _ => base_endpoint // none — pas d'auth
+    };
 
     // Appel HTTP
     let client = reqwest::Client::new();

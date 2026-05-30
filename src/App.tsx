@@ -15,7 +15,7 @@ import { useAgentStore } from "@/store/agentStore";
 export default function App() {
   const { loadApiKey, keyLoaded, checkMonthlyReset } = useSettingsStore();
   const { migrateFromSettings } = useConnectorStore();
-  const { applyDefaultConnectors, installDefaultPacks } = useAgentStore();
+  const { applyDefaultConnectors, installDefaultPacks, installDefaultAgents } = useAgentStore();
 
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
@@ -23,6 +23,7 @@ export default function App() {
     migrateFromSettings();
     applyDefaultConnectors();
     installDefaultPacks();
+    installDefaultAgents();
     // Appliquer le thème persisté au chargement (sinon mineral par défaut)
     const { theme } = useSettingsStore.getState();
     document.documentElement.setAttribute("data-theme", theme);

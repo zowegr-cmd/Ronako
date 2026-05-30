@@ -53,6 +53,9 @@ interface AgentStore {
   // Auto-install des packs essentiels au premier lancement
   hasInstalledDefaultPacks: boolean;
   installDefaultPacks: () => void;
+  // Migration one-shot : agents visuels + forge ajoutés en phase récente
+  hasInstalledDefaultAgents: boolean;
+  installDefaultAgents: () => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -65,6 +68,7 @@ export const useAgentStore = create<AgentStore>()(
       customPacks: [],
       hasAppliedDefaultConnectors: false,
       hasInstalledDefaultPacks: false,
+      hasInstalledDefaultAgents: false,
 
       // ── Agents principaux ───────────────────────────────────────
       addAgent: (data) => {
@@ -233,6 +237,19 @@ export const useAgentStore = create<AgentStore>()(
           set((s) => ({ skills: [...s.skills, ...allNewSkills] }));
         }
         set({ hasInstalledDefaultPacks: true });
+      },
+
+      installDefaultAgents: () => {
+        if (get().hasInstalledDefaultAgents) return;
+        const AGENTS_TO_ENSURE = ["forge", "pixel", "motion", "voice"];
+        const existingIds = new Set(get().agents.map((a) => a.id));
+        const toAdd = DEFAULT_AGENTS.filter(
+          (a) => AGENTS_TO_ENSURE.includes(a.id) && !existingIds.has(a.id),
+        );
+        if (toAdd.length > 0) {
+          set((s) => ({ agents: [...s.agents, ...toAdd] }));
+        }
+        set({ hasInstalledDefaultAgents: true });
       },
 
       applyDefaultConnectors: () => {
