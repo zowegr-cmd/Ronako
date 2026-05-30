@@ -4,7 +4,7 @@ import {
   Zap, X, Plus, GripVertical, ChevronDown, ChevronUp,
   Sparkles, RotateCcw, Wand2, CheckCircle2, AlertCircle,
   Pencil, Check, Dna, TrendingDown, Timer, Star,
-  Info, ChevronRight,
+  Info, ChevronRight, Lock,
 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -64,6 +64,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
   const [showInfiniModal, setShowInfiniModal] = useState(false);
   const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [tempSkillIds, setTempSkillIds] = useState<string[]>([]);
+  const [customDeliverableNote, setCustomDeliverableNote] = useState("");
 
   const { skills: allSkills, setTemporarySkills } = useAgentStore();
   const allAgentIds = new Set(agents.map((a) => a.id));
@@ -156,15 +157,29 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
     resetAnalyzer();
   };
 
+  const buildEnrichedBrief = () => {
+    let enriched = proposal.brief;
+    const formatLabels = selectedFormats
+      .map((f) => Object.values(DELIVERABLE_FORMATS).find((d) => d.id === f)?.label)
+      .filter(Boolean);
+    if (formatLabels.length > 0) {
+      enriched += `\n\nFormats de livrable attendus : ${formatLabels.join(", ")}.`;
+    }
+    if (customDeliverableNote.trim()) {
+      enriched += `\n\nLivrable personnalisé attendu : ${customDeliverableNote.trim()}`;
+    }
+    return enriched;
+  };
+
   const handleConfirm = () => {
     if (tempSkillIds.length > 0) setTemporarySkills(tempSkillIds);
     if (chainMode === "infinite") { setShowInfiniModal(true); return; }
-    onConfirm(proposal.brief, selectedAgents.map((a) => a.id));
+    onConfirm(buildEnrichedBrief(), selectedAgents.map((a) => a.id));
   };
 
   const handleInfiniConfirm = () => {
     setShowInfiniModal(false);
-    onConfirm(proposal.brief, selectedAgents.map((a) => a.id));
+    onConfirm(buildEnrichedBrief(), selectedAgents.map((a) => a.id));
   };
 
   return (
@@ -182,10 +197,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
       {/* ── Header (fixe) ──────────────────────────────────────── */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-crystal/50 bg-mystic/5">
         <Sparkles size={14} className="text-mystic shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-silk">Proposition de Marcus</p>
-          <p className="text-[11px] text-silk/40 truncate">{proposal.brief}</p>
-        </div>
+        <p className="flex-1 text-xs font-semibold text-silk">Proposition de Marcus</p>
         <button onClick={onCancel} className="text-silk/25 hover:text-silk/60 transition-colors">
           <X size={14} />
         </button>
@@ -408,7 +420,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
       {/* ── Formats souhaités ──────────────────────────────────── */}
       <div className="px-4 py-2.5 border-b border-crystal/20">
         <p className="text-[10px] text-silk/30 uppercase tracking-widest mb-2">Livrables souhaités</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
           {Object.values(DELIVERABLE_FORMATS).map((fmt) => {
             const isSelected = selectedFormats.includes(fmt.id);
             const isLocked = fmt.alwaysIncluded;
@@ -421,20 +433,32 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading }: Ch
                     ? selectedFormats.filter((f) => f !== fmt.id)
                     : [...selectedFormats, fmt.id]
                 )}
-                title={fmt.description}
+                title={isLocked ? "Toujours inclus" : fmt.description}
                 className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] border transition-all",
                   isSelected
-                    ? "border-electric/40 bg-electric/10 text-electric"
+                    ? isLocked
+                      ? "border-mystic/40 bg-mystic/10 text-mystic cursor-default"
+                      : "border-electric/40 bg-electric/10 text-electric"
                     : "border-crystal text-silk/35 hover:border-crystal-light",
-                  isLocked && "opacity-60 cursor-default",
                 )}
               >
-                <span>{fmt.icon}</span> {fmt.label}
-                {isLocked && <span className="text-[8px] text-silk/25">✓</span>}
+                <span>{fmt.icon}</span>
+                <span>{fmt.label}</span>
+                {isLocked && <Lock size={9} className="opacity-50 ml-0.5" />}
               </button>
             );
           })}
+        </div>
+        {/* Livrable personnalisé */}
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-silk/25 text-[11px] shrink-0">+ autre :</span>
+          <input
+            value={customDeliverableNote}
+            onChange={(e) => setCustomDeliverableNote(e.target.value)}
+            placeholder="ex. script vidéo YouTube, cahier des charges Word…"
+            className="flex-1 bg-graphite-light border border-crystal/60 rounded-lg px-2.5 py-1 text-[11px] text-silk/70 placeholder-silk/20 focus:outline-none focus:border-electric/40 transition-colors"
+          />
         </div>
       </div>
 
