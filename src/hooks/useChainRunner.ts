@@ -410,10 +410,18 @@ export function useChainRunner(teamId: string) {
           // Mettre en cache pour les prochaines fois (6.11)
           void cacheAnalysis(agent.id, userBrief, fullText, cost);
 
-          // Extraire le score Ryo si c'est l'agent Ryo
+          // Extraire le score Ryo + mettre à jour avgScoreImpact des skills actifs
           if (agent.id === "ryo" && fullText) {
             const ryoData = parseRyoOutput(fullText);
-            if (ryoData.score > 0) setRyoResult(ryoData);
+            if (ryoData.score > 0) {
+              setRyoResult(ryoData);
+              // Mettre à jour l'impact moyen des skills actifs dans cette chaîne
+              const { updateSkillScore } = useAgentStore.getState();
+              const activeSkillsInChain = skills.filter((sk) => sk.isActive && !sk.isTemporary);
+              for (const sk of activeSkillsInChain) {
+                updateSkillScore(sk.id, ryoData.score);
+              }
+            }
           }
 
           // ── Vérifier pause après agent (2.7) ────────────────────

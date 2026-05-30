@@ -99,6 +99,32 @@ export async function exportTeam(team: Team, agents: Agent[], skills: Skill[]): 
   if (path) await writeTextFile(path, JSON.stringify(content, null, 2));
 }
 
+// ─── Export Pack custom ───────────────────────────────────────────────────────
+export async function exportCustomPack(pack: import("@/types").SkillPack): Promise<void> {
+  const payload = {
+    version: "1.0" as const,
+    type: "pack" as const,
+    exportedAt: now(),
+    checksum: "",
+    name: pack.name,
+    description: pack.description,
+    readme: `# ${pack.name}\n\n${pack.description}\n\nPack créé avec Ronako.`,
+    agents: [],
+    teams: [],
+    skills: pack.skills.map(({ id: _id, ...s }) => s),
+    requiredConnectors: [],
+  };
+  payload.checksum = await computeChecksum(payload as unknown as Record<string, unknown>);
+  const filename = `${pack.name.toLowerCase().replace(/\s+/g, "-")}.ronako-pack`;
+  const p = await save({
+    defaultPath: filename,
+    filters: [{ name: "Ronako Pack", extensions: ["ronako-pack"] }],
+  });
+  if (p) {
+    await writeTextFile(p, JSON.stringify(payload, null, 2));
+  }
+}
+
 // ─── Import ────────────────────────────────────────────────────────────────────
 export async function importRonakoFile(): Promise<{
   file: RonakoFile;

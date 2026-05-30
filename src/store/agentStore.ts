@@ -45,6 +45,8 @@ interface AgentStore {
   installCustomPack: (packId: string) => void;
   addSkillToPack: (packId: string, skill: Skill) => void;
   removeSkillFromPack: (packId: string, skillId: string) => void;
+  uninstallCustomPack: (packId: string) => void;
+  updateSkillScore: (skillId: string, scoreDelta: number) => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -189,19 +191,31 @@ export const useAgentStore = create<AgentStore>()(
       installCustomPack: (packId) => {
         const pack = get().customPacks.find((p) => p.id === packId);
         if (!pack) return;
-        const newSkills = materializeSkillPack(pack);
+        const newSkills = materializeSkillPack(pack).map((sk) => ({ ...sk, packId }));
         set((s) => {
           const existingIds = new Set(s.skills.map((sk) => sk.id));
           const toAdd = newSkills.filter((sk) => !existingIds.has(sk.id));
           return { skills: [...s.skills, ...toAdd] };
         });
       },
+      uninstallCustomPack: (packId) =>
+        set((s) => ({ skills: s.skills.filter((sk) => sk.packId !== packId) })),
+      updateSkillScore: (skillId, scoreDelta) =>
+        set((s) => ({
+          skills: s.skills.map((sk) => {
+            if (sk.id !== skillId) return sk;
+            const newCount = sk.useCount + 1;
+            const newAvg = ((sk.avgScoreImpact * sk.useCount) + scoreDelta) / newCount;
+            return { ...sk, useCount: newCount, avgScoreImpact: Math.round(newAvg * 100) / 100 };
+          }),
+        })),
       addSkillToPack: (packId, skill) =>
         set((s) => ({
           customPacks: s.customPacks.map((p) => {
             if (p.id !== packId) return p;
-            if (p.skills.some((sk) => sk.id === skill.id)) return p; // déjà dans le pack
-            const { createdAt: _a, useCount: _b, avgScoreImpact: _c, ...skillDef } = skill;
+            if (p.skills.some((sk) => sk.id === skill.id)) return p;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { createdAt: _a, useCount: _b, avgScoreImpact: _c, packId: _d, ...skillDef } = skill;
             return { ...p, skills: [...p.skills, skillDef] };
           }),
         })),

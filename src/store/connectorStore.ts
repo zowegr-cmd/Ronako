@@ -2,6 +2,14 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 
+export interface CustomMcpEntry {
+  id: string;
+  name: string;
+  description: string;
+  package: string;
+  icon: string;
+}
+
 export interface CustomHttpConnector {
   id: string;
   name: string;
@@ -16,21 +24,23 @@ export interface CustomHttpConnector {
 }
 
 interface ConnectorStore {
-  // Clés API de tous les connecteurs (cache depuis keyring)
   keys: Record<string, string>;
-  // Connecteurs HTTP custom définis par l'utilisateur
   customConnectors: CustomHttpConnector[];
+  customMcps: CustomMcpEntry[];
 
-  // Actions clés API
   setKey: (id: string, value: string) => Promise<void>;
+  deleteKey: (id: string) => Promise<void>;
   getKey: (id: string) => string;
   loadKey: (id: string) => Promise<void>;
   loadAllKnownKeys: () => Promise<void>;
+  migrateFromSettings: () => void;
 
-  // Actions custom connectors
   addCustomConnector: (c: Omit<CustomHttpConnector, "id">) => void;
   updateCustomConnector: (id: string, updates: Partial<CustomHttpConnector>) => void;
   deleteCustomConnector: (id: string) => void;
+
+  addCustomMcp: (mcp: Omit<CustomMcpEntry, "id">) => void;
+  removeCustomMcp: (id: string) => void;
 }
 
 // Tous les IDs de connecteurs connus (builtin + phase 8)
@@ -50,10 +60,20 @@ export const useConnectorStore = create<ConnectorStore>()(
     (set, get) => ({
       keys: {},
       customConnectors: [],
+      customMcps: [],
 
       setKey: async (id, value) => {
         await invoke("secure_set_key", { account: `ronako-connector-${id}`, secret: value });
         set((s) => ({ keys: { ...s.keys, [id]: value } }));
+      },
+
+      deleteKey: async (id) => {
+        try { await invoke("secure_delete_key", { account: `ronako-connector-${id}` }); } catch { /* ok */ }
+        set((s) => {
+          const next = { ...s.keys };
+          delete next[id];
+          return { keys: next };
+        });
       },
 
       getKey: (id) => get().keys[id] ?? "",
@@ -80,6 +100,36 @@ export const useConnectorStore = create<ConnectorStore>()(
         set((s) => ({ keys: { ...s.keys, ...results } }));
       },
 
+      migrateFromSettings: () => {
+        // Migre les anciennes clés de settingsStore vers connectorStore
+        try {
+          const raw = localStorage.getItem("ronako-settings-v3");
+          if (!raw) return;
+          const parsed = JSON.parse(raw) as { state?: { connectorKeys?: Record<string, string> } };
+          const oldKeys = parsed?.state?.connectorKeys;
+          if (!oldKeys) return;
+          const current = get().keys;
+          const merged: Record<string, string> = {};
+          for (const [k, v] of Object.entries(oldKeys)) {
+            if (v && !current[k]) {
+              merged[k] = v;
+              // Migrer aussi dans le keyring
+              invoke("secure_set_key", { account: `ronako-connector-${k}`, secret: v }).catch(() => {});
+            }
+          }
+          if (Object.keys(merged).length > 0) {
+            set((s) => ({ keys: { ...merged, ...s.keys } }));
+          }
+        } catch { /* silencieux */ }
+      },
+
+      addCustomMcp: (mcp) => set((s) => ({
+        customMcps: [...s.customMcps, { ...mcp, id: `mcp-${Date.now()}` }],
+      })),
+      removeCustomMcp: (id) => set((s) => ({
+        customMcps: s.customMcps.filter((m) => m.id !== id),
+      })),
+
       addCustomConnector: (c) => {
         const connector: CustomHttpConnector = { ...c, id: `custom-${Date.now()}` };
         set((s) => ({ customConnectors: [...s.customConnectors, connector] }));
@@ -99,9 +149,9 @@ export const useConnectorStore = create<ConnectorStore>()(
     }),
     {
       name: "ronako-connectors-v1",
-      // Ne pas persister les clés (elles viennent du keyring)
       partialize: (s) => ({
         customConnectors: s.customConnectors,
+        customMcps: s.customMcps,
       }),
     },
   ),

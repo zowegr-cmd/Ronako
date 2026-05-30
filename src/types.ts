@@ -121,6 +121,7 @@ export interface Skill {
   createdAt: string;
   useCount: number;
   avgScoreImpact: number;
+  packId?: string;           // ID du pack source (custom packs)
 }
 
 export interface SkillPack {

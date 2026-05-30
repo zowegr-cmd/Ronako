@@ -8,13 +8,16 @@ import { Orchestrator } from "@/screens/Orchestrator";
 import { Settings } from "@/screens/Settings";
 import { PackManager } from "@/screens/PackManager";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useConnectorStore } from "@/store/connectorStore";
 
 export default function App() {
   const { loadApiKey, keyLoaded, checkMonthlyReset } = useSettingsStore();
+  const { migrateFromSettings } = useConnectorStore();
 
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
-    checkMonthlyReset(); // reset auto si nouveau mois civil
+    checkMonthlyReset();
+    migrateFromSettings(); // migrer anciennes clés settingsStore → connectorStore
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

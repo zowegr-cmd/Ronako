@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { SKILL_PACKS } from "@/lib/skillPacks";
 import { useAgentStore } from "@/store/agentStore";
 import { useConnectorStore, type CustomHttpConnector } from "@/store/connectorStore";
+import { useToastStore } from "@/store/toastStore";
+import { estimateTokens } from "@/lib/tokenCounter";
+import { exportCustomPack } from "@/lib/exportImport";
 import { API_CATALOG, CATEGORY_META, type ApiEntry, type ApiCategory } from "@/lib/apiCatalog";
 import { MCP_CATALOG, type McpServer } from "@/lib/mcpCatalog";
 import type { SkillPack } from "@/types";
@@ -74,7 +77,6 @@ type SkillSubTab = "packs" | "library" | "create";
 function SkillsTab() {
   const [subTab, setSubTab] = useState<SkillSubTab>("packs");
   const [editingSkill, setEditingSkill] = useState<import("@/types").Skill | null>(null);
-  const [showSkillEditor, setShowSkillEditor] = useState(false);
   const { addSkill, updateSkill } = useAgentStore();
 
   return (
@@ -102,7 +104,7 @@ function SkillsTab() {
           <motion.div key="library" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="flex flex-col gap-3">
             <LibrarySubTab
-              onEdit={(sk) => { setEditingSkill(sk); setShowSkillEditor(true); setSubTab("create"); }} />
+              onEdit={(sk) => { setEditingSkill(sk); setSubTab("create"); }} />
           </motion.div>
         )}
         {subTab === "create" && (
@@ -112,14 +114,13 @@ function SkillsTab() {
               onSave={(data) => {
                 if (editingSkill) updateSkill(editingSkill.id, data);
                 else addSkill({ ...data, createdBy: "user" });
-                setShowSkillEditor(false); setEditingSkill(null); setSubTab("library");
+                setEditingSkill(null); setSubTab("library");
               }}
-              onCancel={() => { setEditingSkill(null); setShowSkillEditor(false); setSubTab("library"); }}
+              onCancel={() => { setEditingSkill(null); setSubTab("library"); }}
             />
           </motion.div>
         )}
       </AnimatePresence>
-      {showSkillEditor && false /* handled via subTab */}
     </motion.div>
   );
 }
@@ -185,7 +186,8 @@ function PacksSubTab() {
               onToggle={() => setExpandedPack(expandedPack === pack.id ? null : pack.id)}
               onEdit={() => { setEditingPack(pack); setPackName(pack.name); setPackIcon(pack.icon); setPackDesc(pack.description); setShowPackForm(true); }}
               onDelete={() => deleteCustomPack(pack.id)}
-              onInstall={() => installCustomPack(pack.id)} />
+              onInstall={() => installCustomPack(pack.id)}
+              onUninstall={() => useAgentStore.getState().uninstallCustomPack(pack.id)} />
           ))}
         </div>
       )}
@@ -203,10 +205,10 @@ function PacksSubTab() {
 
 // ── Custom Pack Card ─────────────────────────────────────────────────────────
 
-function CustomPackCard({ pack, expanded, onToggle, onEdit, onDelete, onInstall }: {
+function CustomPackCard({ pack, expanded, onToggle, onEdit, onDelete, onInstall, onUninstall }: {
   pack: SkillPack; expanded: boolean;
   onToggle: () => void; onEdit: () => void;
-  onDelete: () => void; onInstall: () => void;
+  onDelete: () => void; onInstall: () => void; onUninstall: () => void;
 }) {
   const { skills, addSkillToPack, removeSkillFromPack } = useAgentStore();
   const [showAddSkill, setShowAddSkill] = useState(false);
@@ -231,20 +233,26 @@ function CustomPackCard({ pack, expanded, onToggle, onEdit, onDelete, onInstall 
           {installedCount > 0 && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Installé</span>}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <button onClick={onInstall} title="Installer les skills"
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-electric/50 hover:text-electric hover:bg-electric/10 transition-all">
-            <Download size={13} />
+          {installedCount > 0 ? (
+            <button onClick={onUninstall} title="Désinstaller" className="w-7 h-7 rounded-lg flex items-center justify-center text-warning/50 hover:text-warning hover:bg-warning/10 transition-all">
+              <Zap size={12} className="rotate-45" />
+            </button>
+          ) : (
+            <button onClick={onInstall} title="Installer" className="w-7 h-7 rounded-lg flex items-center justify-center text-electric/50 hover:text-electric hover:bg-electric/10 transition-all">
+              <Download size={13} />
+            </button>
+          )}
+          <button onClick={() => void exportCustomPack(pack)} title="Exporter .ronako-pack"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/20 hover:text-silk/60 hover:bg-crystal transition-all">
+            <ExternalLink size={11} />
           </button>
-          <button onClick={onEdit}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/25 hover:text-silk/60 transition-all">
+          <button onClick={onEdit} className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/25 hover:text-silk/60 transition-all">
             <Pencil size={12} />
           </button>
-          <button onClick={onDelete}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
+          <button onClick={onDelete} className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
             <Trash2 size={12} />
           </button>
-          <button onClick={onToggle}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/30 hover:text-silk/60 transition-all">
+          <button onClick={onToggle} className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/30 hover:text-silk/60 transition-all">
             {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </div>
@@ -316,13 +324,22 @@ function CustomPackCard({ pack, expanded, onToggle, onEdit, onDelete, onInstall 
 
 // ── Sous-onglet Bibliothèque ──────────────────────────────────────────────────
 
+const CONFLICTING_PAIRS = [
+  ["formel", "casual"], ["formel", "décontracté"], ["court", "détaillé"],
+  ["simple", "technique"], ["simple", "expert"], ["local", "international"],
+  ["seo", "ux-writing"], ["émotionnel", "factuel"],
+];
+
 function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => void }) {
   const [search, setSearch] = useState("");
   const [filterAgent, setFilterAgent] = useState("all");
+  const [filterActive, setFilterActive] = useState(false);
   const [githubUrl, setGithubUrl] = useState("");
   const [importing, setImporting] = useState(false);
-  const { skills, addSkill, deleteSkill } = useAgentStore();
-  const { agents } = useAgentStore();
+  const [pendingImport, setPendingImport] = useState<{ name: string; description: string; content: string } | null>(null);
+  const [pendingAgentIds, setPendingAgentIds] = useState<string[]>([]);
+  const { skills, addSkill, deleteSkill, agents } = useAgentStore();
+  const toast = useToastStore();
 
   const handleImportGithub = async () => {
     if (!githubUrl.trim()) return;
@@ -331,26 +348,56 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
       const raw = githubUrl
         .replace("github.com", "raw.githubusercontent.com")
         .replace("/blob/", "/");
-      // Via Rust pour respecter la règle no-fetch JS
       const text = await invoke<string>("http_custom_call", {
         url: raw, method: "GET", headers: [], body: null,
       });
       const lines = text.split("\n");
       const name = lines.find((l) => l.startsWith("# "))?.slice(2).trim() ?? "Skill importé";
       const description = lines.find((l) => !l.startsWith("#") && l.trim())?.trim() ?? "";
-      addSkill({ name, description, content: text, agentIds: [], isActive: true, isTemporary: false, inheritToAll: false, triggerKeywords: [], createdBy: "user" });
+      setPendingImport({ name, description, content: text });
       setGithubUrl("");
-    } catch (e) { alert(`Erreur : ${String(e)}`); }
+    } catch (e) { toast.error("Erreur import", String(e)); }
     finally { setImporting(false); }
   };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    addSkill({ ...pendingImport, agentIds: pendingAgentIds, isActive: true, isTemporary: false, inheritToAll: false, triggerKeywords: [], createdBy: "user" });
+    toast.success("Skill importé", pendingImport.name);
+    setPendingImport(null); setPendingAgentIds([]);
+  };
+
+  // Détection de conflits
+  const conflicts: Array<{ agent: string; skillA: string; skillB: string }> = [];
+  const nonSystemAgents = agents.filter((a) => !a.isSystem);
+  for (const agent of nonSystemAgents) {
+    const agentActive = skills.filter((sk) => sk.isActive && sk.agentIds.includes(agent.id));
+    for (let i = 0; i < agentActive.length; i++) {
+      for (let j = i + 1; j < agentActive.length; j++) {
+        const textA = `${agentActive[i].name} ${agentActive[i].content}`.toLowerCase();
+        const textB = `${agentActive[j].name} ${agentActive[j].content}`.toLowerCase();
+        for (const [kw1, kw2] of CONFLICTING_PAIRS) {
+          if ((textA.includes(kw1) && textB.includes(kw2)) || (textA.includes(kw2) && textB.includes(kw1))) {
+            conflicts.push({ agent: agent.name, skillA: agentActive[i].name, skillB: agentActive[j].name });
+          }
+        }
+      }
+    }
+  }
+
+  // Budget tokens par agent
+  const tokenBudget = nonSystemAgents.map((a) => {
+    const active = skills.filter((sk) => sk.isActive && sk.agentIds.includes(a.id));
+    const tokens = active.reduce((s, sk) => s + estimateTokens(sk.content), 0);
+    return { name: a.name, count: active.length, tokens, pct: Math.min(100, Math.round(tokens / 38)) };
+  }).filter((a) => a.count > 0);
 
   const filtered = skills.filter((sk) => {
     const matchSearch = !search || sk.name.toLowerCase().includes(search.toLowerCase());
     const matchAgent = filterAgent === "all" || sk.agentIds.includes(filterAgent);
-    return matchSearch && matchAgent;
+    const matchActive = !filterActive || sk.isActive;
+    return matchSearch && matchAgent && matchActive;
   });
-
-  const nonSystemAgents = agents.filter((a) => !a.isSystem);
 
   return (
     <div className="flex flex-col gap-3">
@@ -364,9 +411,65 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
         </Button>
       </div>
 
+      {/* Guided import — assigner agents avant de confirmer */}
+      <AnimatePresence>
+        {pendingImport && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-electric/5 border border-electric/30 rounded-xl p-3 flex flex-col gap-2">
+            <p className="text-xs font-semibold text-electric">✅ "{pendingImport.name}" importé — assigne les agents :</p>
+            <div className="flex flex-wrap gap-1.5">
+              {nonSystemAgents.map((a) => (
+                <button key={a.id} onClick={() => setPendingAgentIds((p) => p.includes(a.id) ? p.filter((x) => x !== a.id) : [...p, a.id])}
+                  className={cn("px-2 py-0.5 rounded-lg text-[10px] border transition-all",
+                    pendingAgentIds.includes(a.id) ? "border-electric/40 bg-electric/10 text-electric" : "border-crystal text-silk/40 hover:text-silk/60")}>
+                  {a.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={() => { setPendingImport(null); setPendingAgentIds([]); }}>Annuler</Button>
+              <Button variant="primary" size="sm" onClick={confirmImport}>
+                <Check size={11} /> Ajouter le skill
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Conflits détectés */}
+      {conflicts.length > 0 && (
+        <div className="bg-warning/8 border border-warning/25 rounded-xl px-3 py-2">
+          <p className="text-[10px] font-semibold text-warning/80 mb-1">⚠️ {conflicts.length} conflit{conflicts.length > 1 ? "s" : ""} détecté{conflicts.length > 1 ? "s" : ""}</p>
+          {conflicts.slice(0, 3).map((c, i) => (
+            <p key={i} className="text-[9px] text-silk/50">• {c.agent} : "{c.skillA}" ↔ "{c.skillB}"</p>
+          ))}
+        </div>
+      )}
+
+      {/* Budget tokens par agent */}
+      {tokenBudget.length > 0 && (
+        <div className="bg-graphite border border-crystal/30 rounded-xl px-3 py-2">
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest mb-1.5">Budget prompt par agent</p>
+          {tokenBudget.map((a) => (
+            <div key={a.name} className="flex items-center gap-2 mb-1">
+              <span className="text-[9px] text-silk/50 w-16 truncate shrink-0">{a.name}</span>
+              <div className="flex-1 h-1.5 bg-crystal rounded-full overflow-hidden">
+                <div className={cn("h-full rounded-full transition-all", a.pct > 80 ? "bg-danger" : a.pct > 60 ? "bg-warning" : "bg-electric")}
+                  style={{ width: `${a.pct}%` }} />
+              </div>
+              <span className={cn("text-[9px] w-16 text-right shrink-0", a.pct > 80 ? "text-danger/70" : "text-silk/30")}>
+                {a.tokens} tok · {a.count} skill{a.count > 1 ? "s" : ""}
+              </span>
+            </div>
+          ))}
+          <p className="text-[8px] text-silk/20 mt-1">Plafond : 3800 tokens par agent</p>
+        </div>
+      )}
+
       {/* Filtres */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-0">
           <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-silk/25 pointer-events-none" />
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un skill…"
@@ -377,6 +480,11 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
           <option value="all">Tous les agents</option>
           {nonSystemAgents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
+        <button onClick={() => setFilterActive(!filterActive)}
+          className={cn("px-2.5 py-1.5 rounded-lg text-[10px] border transition-all",
+            filterActive ? "border-electric/40 bg-electric/10 text-electric" : "border-crystal text-silk/40 hover:text-silk/60")}>
+          Actifs seulement
+        </button>
       </div>
 
       <p className="text-[10px] text-silk/30">{filtered.length} skill{filtered.length > 1 ? "s" : ""}</p>
@@ -398,6 +506,14 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
                   {skill.isActive && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Actif</span>}
                   {skill.inheritToAll && <span className="text-[8px] bg-mystic/15 text-mystic px-1.5 py-0.5 rounded-full">🌐</span>}
                   {skill.createdBy === "system" && <span className="text-[8px] text-silk/25">pack</span>}
+                  {skill.useCount > 0 && (
+                    <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full",
+                      skill.avgScoreImpact >= 7 ? "bg-success/15 text-success/70" :
+                      skill.avgScoreImpact >= 5 ? "bg-electric/10 text-electric/60" : "bg-warning/10 text-warning/60")}>
+                      ⭐ {skill.avgScoreImpact.toFixed(1)} ({skill.useCount}×)
+                    </span>
+                  )}
+                  <span className="text-[8px] text-silk/20">~{estimateTokens(skill.content)} tok</span>
                 </div>
                 <p className="text-[10px] text-silk/40 mt-0.5 line-clamp-1">{skill.description}</p>
                 <div className="flex gap-1 mt-1 flex-wrap">
@@ -534,7 +650,7 @@ function SkillEditorForm({ skill, onSave, onCancel }: {
 function ApisTab() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<ApiCategory | "all">("all");
-  const { getKey, setKey } = useConnectorStore();
+  const { getKey, setKey, deleteKey } = useConnectorStore();
 
   const categories = ["all", ...Object.keys(CATEGORY_META)] as Array<ApiCategory | "all">;
 
@@ -586,7 +702,8 @@ function ApisTab() {
         {filtered.map((api) => (
           <ApiCard key={api.id} api={api}
             currentKey={getKey(api.keyField)}
-            onSave={(val) => void setKey(api.keyField, val)} />
+            onSave={(val) => void setKey(api.keyField, val)}
+            onDelete={() => void deleteKey(api.keyField)} />
         ))}
         {filtered.length === 0 && (
           <p className="text-sm text-silk/30 text-center py-8">Aucune API ne correspond à ta recherche.</p>
@@ -596,18 +713,61 @@ function ApisTab() {
   );
 }
 
-function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: string; onSave: (v: string) => void }) {
+// Endpoints de test rapide par API
+const TEST_ENDPOINTS: Record<string, { url: string; auth: "bearer" | "header"; headerName?: string }> = {
+  openai:     { url: "https://api.openai.com/v1/models", auth: "bearer" },
+  github:     { url: "https://api.github.com/user", auth: "bearer" },
+  notion:     { url: "https://api.notion.com/v1/users/me", auth: "bearer" },
+  stripe:     { url: "https://api.stripe.com/v1/account", auth: "bearer" },
+  airtable:   { url: "https://api.airtable.com/v0/meta/whoami", auth: "bearer" },
+  sendgrid:   { url: "https://api.sendgrid.com/v3/user/profile", auth: "bearer" },
+  hubspot:    { url: "https://api.hubapi.com/crm/v3/objects/contacts?limit=1", auth: "bearer" },
+  pipedrive:  { url: "https://api.pipedrive.com/v1/users/me", auth: "header", headerName: "x-api-token" },
+  firecrawl:  { url: "https://api.firecrawl.dev/v1/scrape", auth: "bearer" },
+  elevenlabs: { url: "https://api.elevenlabs.io/v1/user", auth: "header", headerName: "xi-api-key" },
+};
+
+function ApiCard({ api, currentKey, onSave, onDelete }: {
+  api: ApiEntry; currentKey: string; onSave: (v: string) => void; onDelete: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [keyInput, setKeyInput] = useState(currentKey);
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const hasKey = !!currentKey;
   const catMeta = CATEGORY_META[api.category];
+  const toast = useToastStore();
 
   const handleSave = async () => {
     setSaving(true);
     onSave(keyInput);
+    setTestResult(null);
     setTimeout(() => setSaving(false), 600);
+  };
+
+  const handleTest = async () => {
+    const key = keyInput || currentKey;
+    if (!key) return;
+    const endpoint = TEST_ENDPOINTS[api.id];
+    if (!endpoint) {
+      setTestResult({ ok: true, msg: "Clé enregistrée (test non disponible pour cette API)" });
+      return;
+    }
+    setTesting(true); setTestResult(null);
+    try {
+      const headers: [string, string][] = endpoint.auth === "bearer"
+        ? [["Authorization", `Bearer ${key}`]]
+        : [[endpoint.headerName!, key]];
+      await invoke<string>("http_custom_call", { url: endpoint.url, method: "GET", headers, body: null });
+      setTestResult({ ok: true, msg: "✅ Clé valide — connexion réussie" });
+      toast.success(`${api.name} connecté`, "Clé API validée");
+    } catch (e) {
+      const msg = String(e);
+      const isInvalid = msg.includes("401") || msg.includes("403");
+      setTestResult({ ok: false, msg: isInvalid ? "❌ Clé invalide ou permissions insuffisantes" : `⚠️ ${msg.slice(0, 80)}` });
+    } finally { setTesting(false); }
   };
 
   return (
@@ -671,18 +831,25 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
                     {showKey ? <EyeOff size={11} /> : <Eye size={11} />}
                   </button>
                 </div>
-                <Button variant="primary" size="sm" loading={saving}
-                  disabled={!keyInput.trim()}
-                  onClick={handleSave}>
+                <Button variant="primary" size="sm" loading={saving} disabled={!keyInput.trim()} onClick={handleSave}>
                   <Check size={11} /> Sauver
                 </Button>
+                <Button variant="ghost" size="sm" loading={testing}
+                  disabled={!keyInput.trim() && !hasKey} onClick={handleTest}>
+                  <Zap size={11} /> Tester
+                </Button>
                 {hasKey && (
-                  <button onClick={() => { onSave(""); setKeyInput(""); }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/50 hover:text-red-400 hover:bg-red-400/10 transition-all">
+                  <button onClick={() => { onDelete(); setKeyInput(""); setTestResult(null); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/50 hover:text-red-400 hover:bg-red-400/10 transition-all" title="Supprimer la clé">
                     <Trash2 size={12} />
                   </button>
                 )}
               </div>
+              {testResult && (
+                <p className={cn("text-[10px] mt-1", testResult.ok ? "text-success/70" : "text-danger/70")}>
+                  {testResult.msg}
+                </p>
+              )}
             </div>
           </motion.div>
         )}
@@ -693,15 +860,13 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
 
 // ── Onglet MCP ────────────────────────────────────────────────────────────────
 
-interface CustomMcpEntry { id: string; name: string; description: string; package: string; icon: string }
-
 function McpTab() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filterOfficial, setFilterOfficial] = useState<"all" | "official" | "community">("all");
-  const [customMcps, setCustomMcps] = useState<CustomMcpEntry[]>([]);
   const [githubUrl, setGithubUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const { customMcps, addCustomMcp, removeCustomMcp } = useConnectorStore();
 
   const handleImportMcp = async () => {
     if (!githubUrl.trim()) return;
@@ -735,13 +900,7 @@ function McpTab() {
         if (firstLine) description = firstLine.trim().slice(0, 120);
       } catch { /* README absent */ }
 
-      setCustomMcps((prev) => [...prev, {
-        id: `mcp-custom-${Date.now()}`,
-        name: repoClean,
-        description,
-        package: `npx -y ${pkgName}`,
-        icon: "🔧",
-      }]);
+      addCustomMcp({ name: repoClean, description, package: `npx -y ${pkgName}`, icon: "🔧" });
       setGithubUrl("");
     } catch (e) { setImportError(String(e)); }
     finally { setImporting(false); }
@@ -801,7 +960,7 @@ function McpTab() {
                     className="flex items-center gap-1 text-[9px] text-silk/30 hover:text-silk/60 border border-crystal/40 rounded-lg px-2 py-0.5">
                     {copiedId === s.id ? <><Check size={9} className="text-success" /> Copié</> : <><Copy size={9} /> Copier</>}
                   </button>
-                  <button onClick={() => setCustomMcps((p) => p.filter((m) => m.id !== s.id))}
+                  <button onClick={() => removeCustomMcp(s.id)}
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10">
                     <Trash2 size={11} />
                   </button>
