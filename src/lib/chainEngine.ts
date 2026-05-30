@@ -52,6 +52,7 @@ export interface ChainContext {
   universalSkills?: Skill[];
   deliverableLanguage?: string;
   activeToolNames?: string[];    // Phase 8 — noms des outils disponibles pour cet agent
+  teamCapabilities?: string;     // Phase 9 — capacités skills/outils de toute l'équipe
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -102,9 +103,12 @@ export function buildAgentPrompt(
     ? `[LANGUE DU LIVRABLE : ${LANGUAGE_LABELS[lang] ?? lang}]\nProduis ton output intégralement en ${LANGUAGE_LABELS[lang] ?? lang}. L'interface reste en français mais ton livrable doit être en ${LANGUAGE_LABELS[lang] ?? lang}.\n\n`
     : "";
 
-  // ── Bloc ADN — toujours en tête sauf pour Marcus (il génère le brief) ──────
+  // ── Bloc ADN + capacités équipe ────────────────────────────────────────────
+  const capBlock = context.teamCapabilities && !isFirst
+    ? `\n${context.teamCapabilities}\n`
+    : "";
   const dnaBlock = context.projectDNA && !isFirst
-    ? `${wrapDNA(context.projectDNA)}\n\n`
+    ? `${wrapDNA(context.projectDNA + capBlock)}\n\n`
     : "";
 
   // ── Contexte Relay — résumé ciblé via matrice dépendances ──────────────────

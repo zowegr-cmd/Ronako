@@ -11,6 +11,63 @@ import { buildDependencyContext } from "@/lib/dependencyMatrix";
 import { MARCUS_CHECK_PROMPT, buildMarcusCheckInput, parseMarcusCheckResponse, applyMarcusCorrection } from "@/lib/marcusCheck";
 import { CHAIN_MODES, resolveAgentModel } from "@/lib/chainModes";
 
+// ─── Capacités de l'équipe pour l'ADN Projet ─────────────────────────────────
+
+const CONNECTOR_LABELS: Record<string, string> = {
+  openai: "DALL-E 3 (images haute qualité)",
+  bfl: "Flux (images rapides)",
+  e2b: "E2B (exécution code, génère fichiers)",
+  notion: "Notion (export pages)",
+  github: "GitHub (commits/PRs)",
+  tavily: "Tavily (recherche web)",
+  sendgrid: "SendGrid (envoi emails)",
+  serper: "Serper (Google Search)",
+  airtable: "Airtable (base de données)",
+  slack: "Slack (messages)",
+  stripe: "Stripe (paiements)",
+};
+
+function buildTeamCapabilitiesBlock(
+  agents: import("@/types").Agent[],
+  allSkills: import("@/types").Skill[],
+  allKeys: Record<string, string>,
+  legacyKeys: Record<string, string>,
+  mcpStates: Record<string, { status: string; tools: Array<{ name: string }> }>,
+): string {
+  const agentLines: string[] = [];
+
+  for (const agent of agents) {
+    const activeSkills = allSkills.filter(
+      (sk) => (sk.isActive || sk.inheritToAll) && sk.agentIds.includes(agent.id) && !sk.isTemporary,
+    );
+    const connectors = (agent.connectors ?? []).filter(
+      (c) => !!(allKeys[c] || legacyKeys[c as keyof typeof legacyKeys]),
+    );
+
+    const parts: string[] = [];
+    if (activeSkills.length > 0)
+      parts.push(`skills: ${activeSkills.map((s) => s.name).join(", ")}`);
+    if (connectors.length > 0)
+      parts.push(`outils: ${connectors.map((c) => CONNECTOR_LABELS[c] ?? c).join(", ")}`);
+
+    if (parts.length > 0)
+      agentLines.push(`  • ${agent.name} — ${parts.join(" | ")}`);
+  }
+
+  // Serveurs MCP actifs
+  const activeMcp = Object.entries(mcpStates ?? {})
+    .filter(([, s]) => s.status === "running")
+    .map(([id, s]) => `${id} (${s.tools.slice(0, 3).map((t) => t.name).join(", ")})`);
+
+  if (agentLines.length === 0 && activeMcp.length === 0) return "";
+
+  const mcpLine = activeMcp.length > 0
+    ? `\n  • MCP actifs : ${activeMcp.join(", ")}`
+    : "";
+
+  return `CAPACITÉS DE L'ÉQUIPE :\n${agentLines.join("\n")}${mcpLine}\n→ Chaque agent doit UTILISER ses outils/skills si pertinent pour sa tâche.`;
+}
+
 function formatCentsForNotif(cents: number): string {
   return cents < 1 ? "<0.01€" : `${(cents / 100).toFixed(2)}€`;
 }
@@ -203,6 +260,13 @@ export function useChainRunner(teamId: string) {
         if (dna) setProjectDNA(dna);
       }
 
+      // Capacités de l'équipe — recalculé à chaque chaîne (skills/outils peuvent changer)
+      const teamCapabilities = buildTeamCapabilitiesBlock(
+        agentsWithMode, skills, allConnectorKeys,
+        connectorKeys as unknown as Record<string, string>,
+        mcpStates,
+      );
+
       let previousOutput = "";
       let relayContext: string | undefined;
       let currentRelayOutputs: Record<string, string> = { ...relayOutputs };
@@ -315,6 +379,7 @@ export function useChainRunner(teamId: string) {
             agentSkills: allAgentSkills, universalSkills,
             deliverableLanguage,
             activeToolNames: activeToolNames.length > 0 ? activeToolNames : undefined,
+            teamCapabilities: teamCapabilities || undefined,
           },
           previousOutput,
           i,
