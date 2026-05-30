@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { Modal } from "@/components/ui/Modal";
 import { useProjectStore } from "@/store/projectStore";
+import { useAgentStore } from "@/store/agentStore";
+import { PROJECT_TEMPLATES } from "@/lib/projectTemplates";
 import { relativeTime, truncate } from "@/lib/utils";
 import type { Project } from "@/types";
 
@@ -22,16 +24,30 @@ const item = {
 export function Launcher() {
   const navigate = useNavigate();
   const { projects, createProject, openProject, deleteProject } = useProjectStore();
+  const { updateTeam } = useAgentStore();
   const [showNew, setShowNew] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPath, setNewPath] = useState("");
 
-  const handleCreate = () => {
+  const handleCreate = (templateId?: string) => {
     if (!newName.trim()) return;
     createProject(newName.trim(), newPath.trim() || "/");
+    // Pré-configurer l'équipe selon le template
+    if (templateId) {
+      const tpl = PROJECT_TEMPLATES.find((t) => t.id === templateId);
+      if (tpl) updateTeam("alpha", { agentIds: tpl.agents });
+    }
     setShowNew(false);
     setNewName("");
     setNewPath("");
+    navigate("/workspace");
+  };
+
+  const handleCreateFromTemplate = (tpl: typeof PROJECT_TEMPLATES[number]) => {
+    createProject(tpl.name, "/");
+    updateTeam("alpha", { agentIds: tpl.agents });
+    setShowTemplates(false);
     navigate("/workspace");
   };
 
@@ -61,16 +77,13 @@ export function Launcher() {
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               transition={{ type: "spring", stiffness: 300 }}
-              style={{ filter: "drop-shadow(0 0 24px rgba(0,122,255,0.35))" }}
+              style={{ filter: "drop-shadow(0 0 28px rgba(0,122,255,0.4))" }}
             >
-              <AppLogo size={72} />
+              <AppLogo size={80} />
             </motion.div>
-            <div>
-              <h1 className="text-3xl font-bold text-silk tracking-tight">Ronako</h1>
-              <p className="text-silk/35 text-xs mt-1 tracking-[0.2em] uppercase">
-                Superviseur Multi-Agents IA
-              </p>
-            </div>
+            <p className="text-silk/30 text-[11px] tracking-[0.25em] uppercase font-light">
+              Superviseur Multi-Agents IA
+            </p>
           </motion.div>
 
           {/* CTAs */}
@@ -96,6 +109,14 @@ export function Launcher() {
               <FolderOpen size={16} />
               Demo rapide
             </Button>
+          </motion.div>
+
+          {/* Templates */}
+          <motion.div variants={item}>
+            <button onClick={() => setShowTemplates(true)}
+              className="w-full py-2 text-[11px] text-silk/30 hover:text-electric/60 transition-colors flex items-center justify-center gap-1.5">
+              <span>✦</span> Démarrer depuis un template
+            </button>
           </motion.div>
 
           {/* Recent projects */}
@@ -152,10 +173,27 @@ export function Launcher() {
           </div>
           <div className="flex gap-2 justify-end pt-1">
             <Button variant="ghost" onClick={() => setShowNew(false)}>Annuler</Button>
-            <Button variant="primary" onClick={handleCreate} disabled={!newName.trim()}>
+            <Button variant="primary" onClick={() => handleCreate()} disabled={!newName.trim()}>
               Créer le projet
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal Templates */}
+      <Modal open={showTemplates} onClose={() => setShowTemplates(false)} title="Templates de projets" size="md">
+        <div className="flex flex-col gap-2">
+          {PROJECT_TEMPLATES.map((tpl) => (
+            <button key={tpl.id} onClick={() => handleCreateFromTemplate(tpl)}
+              className="flex items-center gap-3 p-3 rounded-xl border border-crystal hover:border-electric/30 hover:bg-electric/5 transition-all text-left group">
+              <span className="text-2xl shrink-0">{tpl.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-silk group-hover:text-electric transition-colors">{tpl.name}</p>
+                <p className="text-xs text-silk/40 mt-0.5">{tpl.description}</p>
+                <p className="text-[10px] text-silk/25 mt-1">{tpl.agents.length} agents · mode {tpl.mode}</p>
+              </div>
+            </button>
+          ))}
         </div>
       </Modal>
     </div>

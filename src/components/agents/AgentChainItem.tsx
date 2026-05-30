@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, X } from "lucide-react";
+import { useSounds } from "@/hooks/useSounds";
 import type { Agent } from "@/types";
 import { AgentAvatar } from "./AgentAvatar";
 import { Badge } from "@/components/ui/Badge";
@@ -17,6 +18,13 @@ interface AgentChainItemProps {
 export function AgentChainItem({ agent, index, onRemove, isActive }: AgentChainItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: agent.id });
+  const { playClick } = useSounds();
+
+  // Son au début du drag
+  const handlePointerDown = (e: React.PointerEvent) => {
+    playClick();
+    (listeners as { onPointerDown?: (e: React.PointerEvent) => void })?.onPointerDown?.(e);
+  };
 
   return (
     <div
@@ -38,6 +46,7 @@ export function AgentChainItem({ agent, index, onRemove, isActive }: AgentChainI
       <button
         {...attributes}
         {...listeners}
+        onPointerDown={handlePointerDown}
         className="text-silk/20 hover:text-silk/60 transition-colors cursor-grab active:cursor-grabbing shrink-0 touch-none"
       >
         <GripVertical size={14} />

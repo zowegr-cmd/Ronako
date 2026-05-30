@@ -1,8 +1,8 @@
 /**
- * Logo Ronako — SVG vectoriel, transparent par nature (pas de fond).
- * Fonctionne sur n'importe quel fond.
+ * Logo Ronako — utilise le vrai PNG (fond transparent, généré depuis ronako-logo.png).
+ * Fonctionne sur n'importe quel fond sombre.
  */
-import logoSvg from "@/assets/logo.svg?url";
+import logoUrl from "@/assets/logo-transparent.png?url";
 
 interface AppLogoProps {
   size?: number;
@@ -13,7 +13,7 @@ interface AppLogoProps {
 export function AppLogo({ size = 32, className, style }: AppLogoProps) {
   return (
     <img
-      src={logoSvg}
+      src={logoUrl}
       alt="Ronako"
       width={size}
       height={size}

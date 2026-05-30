@@ -37,7 +37,7 @@ export function useChainRunner(teamId: string) {
     setLastDeliverableContent,
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
-  const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys } = useSettingsStore();
+  const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
   const toast = useToastStore();
   const { stream, abort: abortStream } = useAnthropicStream();
   const { playChainStart, playChime } = useSounds();
@@ -242,6 +242,7 @@ export function useChainRunner(teamId: string) {
             projectName, userBrief, folderContext: combinedFolderContext,
             projectDNA: dna ?? undefined, relayContext,
             agentSkills, universalSkills,
+            deliverableLanguage,
           },
           previousOutput,
           i,

@@ -13,7 +13,7 @@ import { MODEL_LABELS, MODEL_COST_RATES, type ModelId } from "@/types";
 import { ALL_CONNECTORS } from "@/lib/connectors/types";
 import { useSettingsStore } from "@/store/settingsStore";
 import { formatCost } from "@/lib/utils";
-import type { ConnectorKeys } from "@/store/settingsStore";
+import type { ConnectorKeys, MarcusPersona, AppTheme, ExpertiseLevel, DeliverableLanguage } from "@/store/settingsStore";
 
 const MODELS: ModelId[] = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"];
 
@@ -24,6 +24,11 @@ export function Settings() {
     monthlyBudgetCap, setMonthlyBudgetCap,
     monthlySpend, hasValidApiKey,
     resetMonthlySpend, connectorKeys, setConnectorKey,
+    marcusPersona, setMarcusPersona,
+    theme, setTheme,
+    expertiseLevel, setExpertiseLevel,
+    deliverableLanguage, setDeliverableLanguage,
+    focusMode, setFocusMode,
   } = useSettingsStore();
 
   const [showKey, setShowKey] = useState(false);
@@ -210,6 +215,87 @@ export function Settings() {
               })}
             </div>
           </div>
+        </Section>
+
+        {/* ── Style de Marcus (7.9) ────────────────────────────────── */}
+        <Section title="Style de Marcus" icon={<Info size={14} />}>
+          <div className="flex flex-col gap-2">
+            {([ ["direct","Direct","Concis et efficace. Aucune phrase inutile."],
+                ["detailed","Détaillé","Explique chaque décision et ses implications."],
+                ["coach","Coach","Te guide, te challenge, te pose des questions."],
+                ["expert","Expert","Vocabulaire technique, références précises."],
+            ] as [MarcusPersona, string, string][]).map(([val, label, desc]) => (
+              <label key={val} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${marcusPersona === val ? "border-electric/40 bg-electric/5" : "border-crystal/40 hover:border-crystal-light"}`}>
+                <input type="radio" className="mt-0.5 accent-electric" checked={marcusPersona === val} onChange={() => setMarcusPersona(val)} />
+                <div>
+                  <p className="text-xs font-medium text-silk">{label}</p>
+                  <p className="text-[10px] text-silk/40">{desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </Section>
+
+        {/* ── Niveau d'expertise (7.14) ─────────────────────────────── */}
+        <Section title="Mon niveau" icon={<Info size={14} />}>
+          <div className="flex flex-col gap-2">
+            {([ ["beginner","Débutant","Marcus explique chaque décision et guide pas à pas."],
+                ["intermediate","Intermédiaire","Explications disponibles si demandées."],
+                ["expert","Expert","Informations essentielles uniquement. Pas de pédagogie."],
+            ] as [ExpertiseLevel, string, string][]).map(([val, label, desc]) => (
+              <label key={val} className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${expertiseLevel === val ? "border-electric/40 bg-electric/5" : "border-crystal/40 hover:border-crystal-light"}`}>
+                <input type="radio" className="mt-0.5 accent-electric" checked={expertiseLevel === val} onChange={() => setExpertiseLevel(val)} />
+                <div>
+                  <p className="text-xs font-medium text-silk">{label}</p>
+                  <p className="text-[10px] text-silk/40">{desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </Section>
+
+        {/* ── Thème visuel (7.12) ──────────────────────────────────── */}
+        <Section title="Thème visuel" icon={<Info size={14} />}>
+          <div className="grid grid-cols-2 gap-2">
+            {([ ["mineral","Minéral","#0B0B0C","#007AFF"],
+                ["arctic","Arctic","#F5F7FA","#0066CC"],
+                ["forest","Forest","#0D1A12","#22C55E"],
+                ["sunset","Sunset","#1A0A0A","#F97316"],
+            ] as [AppTheme, string, string, string][]).map(([val, label, bg, accent]) => (
+              <button key={val} onClick={() => setTheme(val)}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${theme === val ? "border-electric/50 bg-electric/5" : "border-crystal/40 hover:border-crystal-light"}`}>
+                <div className="w-8 h-8 rounded-lg flex-shrink-0 flex gap-0.5 overflow-hidden" style={{ background: bg }}>
+                  <div className="w-3 h-full" style={{ background: accent, opacity: 0.8 }} />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-silk">{label}</p>
+                  {theme === val && <p className="text-[10px] text-electric/60">Actif</p>}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        {/* ── Langue des livrables (7.15) ──────────────────────────── */}
+        <Section title="Langue des livrables" icon={<Info size={14} />}>
+          <div className="flex flex-col gap-2">
+            <select
+              value={deliverableLanguage}
+              onChange={(e) => setDeliverableLanguage(e.target.value as DeliverableLanguage)}
+              className="bg-graphite-light border border-crystal rounded-xl px-3 py-2 text-sm text-silk focus:outline-none focus:border-electric/50">
+              <option value="fr">🇫🇷 Français (défaut)</option>
+              <option value="en">🇬🇧 Anglais</option>
+              <option value="es">🇪🇸 Espagnol</option>
+              <option value="de">🇩🇪 Allemand</option>
+            </select>
+            <p className="text-[10px] text-silk/30">L'interface reste en français. Seuls les livrables générés utilisent cette langue.</p>
+          </div>
+        </Section>
+
+        {/* ── Mode Focus (7.10) ────────────────────────────────────── */}
+        <Section title="Interface" icon={<Info size={14} />}>
+          <Toggle checked={focusMode} onChange={setFocusMode}
+            label="Mode Focus — masque la NavBar et le dock (Ctrl+Shift+F)" />
         </Section>
 
         {/* ── Son ──────────────────────────────────────────────────── */}

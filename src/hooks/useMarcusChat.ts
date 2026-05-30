@@ -5,6 +5,20 @@ import { useAgentStore } from "@/store/agentStore";
 import { useChainStore } from "@/store/chainStore";
 import { MODEL_TIERS } from "@/types";
 import type { Message } from "@/types";
+import type { MarcusPersona, ExpertiseLevel } from "@/store/settingsStore";
+
+const PERSONA_SUFFIX: Record<MarcusPersona, string> = {
+  direct:   "\n\nSTYLE : Sois ultra-concis. Maximum 3 phrases par réponse. Pas de formules de politesse.",
+  detailed: "\n\nSTYLE : Explique tes décisions. Donne le contexte et les raisons. Sois pédagogue.",
+  coach:    "\n\nSTYLE : Pose des questions pour affiner la compréhension. Challenge les idées reçues. Guide plutôt que dicter.",
+  expert:   "\n\nSTYLE : Utilise le vocabulaire technique approprié. Cite des méthodes et frameworks connus. L'utilisateur est expert.",
+};
+
+const EXPERTISE_SUFFIX: Record<ExpertiseLevel, string> = {
+  beginner:     "\n\nNIVEAU : L'utilisateur est débutant. Explique chaque concept simplement. Utilise des analogies concrètes. Propose de l'aide proactivement.",
+  intermediate: "\n\nNIVEAU : Utilisateur intermédiaire. Explique si demandé seulement.",
+  expert:       "\n\nNIVEAU : Utilisateur expert. Aller droit au but. Pas de pédagogie ni d'explications non demandées.",
+};
 
 const MARCUS_CONVERSATION_PROMPT = `Tu es Marcus, Chef d'Orchestre de l'équipe IA Ronako.
 
@@ -29,7 +43,7 @@ Tu parles en français, avec concision et clarté. Pas de longs paragraphes inut
 
 export function useMarcusChat() {
   const { stream, abort } = useAnthropicStream();
-  const { apiKey, hasValidApiKey } = useSettingsStore();
+  const { apiKey, hasValidApiKey, marcusPersona, expertiseLevel } = useSettingsStore();
   const { getAgent } = useAgentStore();
   const {
     addWorkspaceMessage,
@@ -57,7 +71,7 @@ export function useMarcusChat() {
 
       // Construire le contexte de conversation (10 derniers messages)
       const context = history
-        .filter((m) => m.role !== "system" && m.agentId === "marcus" || m.role === "user")
+        .filter((m) => (m.role !== "system" && m.agentId === "marcus") || m.role === "user")
         .slice(-10)
         .map((m) => (m.role === "user" ? `Utilisateur: ${m.content}` : `Marcus: ${m.content}`))
         .join("\n\n");
@@ -66,13 +80,17 @@ export function useMarcusChat() {
         ? `${context}\n\nUtilisateur: ${userText}`
         : userText;
 
+      const enrichedPrompt = MARCUS_CONVERSATION_PROMPT
+        + PERSONA_SUFFIX[marcusPersona]
+        + EXPERTISE_SUFFIX[expertiseLevel];
+
       setStreaming(marcus.id);
 
       await new Promise<void>((resolve) => {
         stream({
           apiKey,
           model: marcus.model ?? MODEL_TIERS.orchestrator,
-          systemPrompt: MARCUS_CONVERSATION_PROMPT,
+          systemPrompt: enrichedPrompt,
           userMessage: prompt,
           onChunk: appendStreaming,
           onDone: () => {
@@ -90,7 +108,7 @@ export function useMarcusChat() {
         });
       });
     },
-    [apiKey, hasValidApiKey, getAgent, stream, addWorkspaceMessage, setStreaming, appendStreaming, flushStreaming]
+    [apiKey, hasValidApiKey, marcusPersona, expertiseLevel, getAgent, stream, addWorkspaceMessage, setStreaming, appendStreaming, flushStreaming]
   );
 
   return { sendToMarcus, abort };

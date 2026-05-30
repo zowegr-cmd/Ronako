@@ -5,8 +5,10 @@ import { generateId } from "@/lib/utils";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useAgentStore } from "@/store/agentStore";
 import { useChainStore } from "@/store/chainStore";
+import { enforceIndispensable } from "@/hooks/useChainOptimizer";
 import { MODEL_TIERS } from "@/types";
 import type { ChainProposal } from "@/types";
+import { detectMissingSuggestions } from "@/lib/proactiveSuggestions";
 
 const PLANNING_PROMPT = (agentList: string) => `Tu es Marcus, Chef d'Orchestre. Analyse la conversation ci-dessous et produis un plan d'exécution.
 
@@ -30,9 +32,9 @@ Réponds UNIQUEMENT avec ce JSON, sans texte autour, sans markdown :
 }`;
 
 export function useMarcusPlan() {
-  const { apiKey, hasValidApiKey } = useSettingsStore();
-  const { agents, getTeam } = useAgentStore();
-  const { workspaceMessages, setProposal, setProposalLoading } = useChainStore();
+  const { apiKey, hasValidApiKey, getConnectorKey, ignoredSuggestions } = useSettingsStore();
+  const { agents, getTeam, skills } = useAgentStore();
+  const { workspaceMessages, setProposal, setProposalLoading, addWorkspaceMessage } = useChainStore();
 
   const buildPlan = useCallback(async () => {
     if (!hasValidApiKey()) return;
@@ -93,9 +95,29 @@ export function useMarcusPlan() {
 
       // Valider que les IDs existent
       const validAgentIds = new Set(agents.map((a) => a.id));
-      const validAgents = parsed.agents.filter((a) => validAgentIds.has(a.id));
+      const rawAgents = parsed.agents.filter((a) => validAgentIds.has(a.id));
+
+      // Appliquer les règles d'agents indispensables
+      const { result: validAgents } = enforceIndispensable(rawAgents, validAgentIds);
 
       setProposal({ brief: parsed.brief, agents: validAgents });
+
+      // Suggestion proactive — max 1 par session (7.7)
+      const activeSkills = skills.filter((s) => s.isActive);
+      const installedConnectors = (["tavily","openai","bfl","e2b","notion","github","screenshot"] as const)
+        .filter((c) => !!getConnectorKey(c));
+      const suggestion = detectMissingSuggestions({
+        brief: parsed.brief,
+        activeSkills,
+        installedConnectors,
+        ignoredSuggestions,
+      });
+      if (suggestion) {
+        addWorkspaceMessage({
+          role: "system",
+          content: `⚡SUGGESTION|${suggestion.action}|${suggestion.costImpact ?? ""}|${suggestion.actionLabel}|${suggestion.message}`,
+        });
+      }
     } catch {
       // Fallback : utiliser l'équipe par défaut
       const defaultTeam = getTeam("alpha");
@@ -109,7 +131,7 @@ export function useMarcusPlan() {
     } finally {
       setProposalLoading(false);
     }
-  }, [apiKey, hasValidApiKey, agents, workspaceMessages, setProposal, setProposalLoading, getTeam]);
+  }, [apiKey, hasValidApiKey, agents, skills, workspaceMessages, setProposal, setProposalLoading, addWorkspaceMessage, getTeam, getConnectorKey, ignoredSuggestions]);
 
   return { buildPlan };
 }

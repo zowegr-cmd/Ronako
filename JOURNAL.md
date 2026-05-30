@@ -389,6 +389,60 @@ Ou Phase 7 G-H si on finit d'abord (Marcus proactif 7.7, ChainProposalCard 7.8, 
 
 ---
 
+## SESSION 2026-05-30 — Phase 7 G+H complète
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ 7.7  proactiveSuggestions.ts — 6 règles (SEO, email, image, ecommerce, local, social)
+        useMarcusPlan.ts — suggestion injectée après buildPlan (format ⚡SUGGESTION|...)
+        OrchestratorChat.tsx — rendu suggestion avec bouton action + Ignorer
+        AppShell.tsx — listener navigate-packs ajouté
+✅ 7.8  ChainProposalCard — présets de configuration (sauvegarder/charger/supprimer)
+        Note personnelle pour ce run (injectée dans brief)
+✅ 7.9  useMarcusChat.ts — persona injecté dans systemPrompt (direct/detailed/coach/expert)
+        Settings.tsx — section Style de Marcus avec 4 radios
+✅ 7.10 AppShell.tsx — Mode Focus masque NavBar + ConsultantDock, bouton Quitter
+        useKeyboardShortcuts.ts — Ctrl+Shift+F toggle
+✅ 7.12 Settings.tsx — section Thème visuel avec preview couleurs (4 options)
+✅ 7.13 tips.ts + useTips.ts + TipBanner.tsx — 5 tips contextuels
+        Workspace.tsx — évaluation tips après chaîne + TipBanner affiché
+✅ 7.14 useMarcusChat.ts — expertiseLevel injecté (beginner/intermediate/expert)
+        Settings.tsx — section Mon niveau avec 3 radios
+✅ 7.15 chainEngine.ts — deliverableLanguage injecté si ≠ fr
+        useChainRunner.ts — passe deliverableLanguage à buildAgentPrompt
+        Settings.tsx — section Langue des livrables (select FR/EN/ES/DE)
+✅ settingsStore.ts — ChainPreset type, chainPresets[], ignoredSuggestions{},
+        deliverableLanguage: DeliverableLanguage, nouveaux setters
+✅ TypeScript 0 erreurs, push main
+```
+
+### FICHIERS MODIFIÉS
+```
+src/lib/proactiveSuggestions.ts    (créé)
+src/lib/tips.ts                    (créé)
+src/hooks/useTips.ts               (créé)
+src/components/ui/TipBanner.tsx    (créé)
+src/store/settingsStore.ts         (ChainPreset, chainPresets, ignoredSuggestions, DeliverableLanguage)
+src/hooks/useMarcusChat.ts         (persona + expertise injection)
+src/hooks/useMarcusPlan.ts         (proactive suggestion après buildPlan)
+src/hooks/useChainRunner.ts        (deliverableLanguage passé)
+src/lib/chainEngine.ts             (ChainContext.deliverableLanguage, langBlock injection)
+src/hooks/useKeyboardShortcuts.ts  (Ctrl+Shift+F)
+src/components/layout/AppShell.tsx (focus mode + navigate-packs listener)
+src/components/workspace/OrchestratorChat.tsx (suggestion message style)
+src/components/workspace/ChainProposalCard.tsx (présets + note run)
+src/screens/Settings.tsx           (4 nouvelles sections)
+src/screens/Workspace.tsx          (TipBanner + tips evaluation)
+```
+
+### ÉTAT ACTUEL
+Phase 7 complète — TypeScript 0 erreurs, Rust inchangé.
+
+### PROCHAINE SESSION
+Phase 8A — Tool use images (DALL-E / Flux dans la boucle Rust).
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

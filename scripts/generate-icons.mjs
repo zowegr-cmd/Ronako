@@ -1,78 +1,78 @@
 /**
- * Génère toutes les icônes Ronako depuis le SVG vectoriel.
- * Source : src/assets/logo.svg (fond transparent)
- * Usage  : node scripts/generate-icons.mjs
+ * Génère toutes les icônes Ronako depuis ronako-logo.png (racine du projet).
+ * - Supprime le fond blanc avec antialiasing
+ * - Génère fond transparent (app) + fond sombre (icônes OS)
+ * - Crée .ico Windows multi-tailles + .icns macOS
+ * Usage : node scripts/generate-icons.mjs
  */
-import { Resvg } from "@resvg/resvg-js";
+import { Jimp } from "jimp";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root      = path.join(__dirname, "..");
-const svgPath   = path.join(root, "src", "assets", "logo.svg");
+const srcLogo   = path.join(root, "ronako-logo.png");
 const iconsDir  = path.join(root, "src-tauri", "icons");
 const assetsDir = path.join(root, "src", "assets");
+
+if (!fs.existsSync(srcLogo)) {
+  console.error("❌ Fichier introuvable : ronako-logo.png à la racine du projet");
+  process.exit(1);
+}
 
 fs.mkdirSync(iconsDir, { recursive: true });
 fs.mkdirSync(assetsDir, { recursive: true });
 
-const svgData = fs.readFileSync(svgPath, "utf8");
-console.log("Logo SVG chargé depuis src/assets/logo.svg");
+console.log("Chargement de ronako-logo.png…");
+const src = await Jimp.read(srcLogo);
+const W = src.width;
+const H = src.height;
+console.log(`  Dimensions source : ${W}×${H}px`);
 
-// ─── Rendre le SVG en PNG à la taille voulue ────────────────────────────────
-function renderPng(svgStr, size, bgColor = null) {
-  // Fond sombre optionnel : on entoure le SVG d'un rect
-  const wrapped = bgColor
-    ? svgStr.replace(
-        "<svg",
-        `<svg style="background:${bgColor}"`
-      )
-    : svgStr;
+// ─── Suppression du fond blanc avec feathering (antialiasing propre) ──────────
+function removeWhiteBg(img, threshold = 240, feather = 25) {
+  const out = img.clone();
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const c = img.getPixelColor(x, y);
+      const r = (c >>> 24) & 0xFF;
+      const g = (c >>> 16) & 0xFF;
+      const b = (c >>> 8)  & 0xFF;
+      const brightness = (r + g + b) / 3;
+      if (brightness >= threshold) {
+        out.setPixelColor(0x00000000, x, y);
+      } else if (brightness >= threshold - feather) {
+        const alpha = Math.round(((threshold - brightness) / feather) * 255);
+        out.setPixelColor(((r << 24) | (g << 16) | (b << 8) | alpha) >>> 0, x, y);
+      }
+    }
+  }
+  return out;
+}
 
-  const resvg = new Resvg(wrapped, {
-    fitTo: { mode: "width", value: size },
-    background: bgColor ?? "transparent",
+// ─── Ajouter un fond de couleur à l'image transparente ───────────────────────
+function addBackground(transparent, r, g, b) {
+  const bg = new Jimp({
+    width: transparent.width,
+    height: transparent.height,
+    color: ((r << 24) | (g << 16) | (b << 8) | 0xFF) >>> 0,
   });
-  return resvg.render().asPng();
+  bg.composite(transparent, 0, 0);
+  return bg;
 }
 
-// ─── Version transparente (pour l'app) ──────────────────────────────────────
-const png512 = renderPng(svgData, 512);
-fs.writeFileSync(path.join(assetsDir, "logo-transparent.png"), png512);
-console.log("  src/assets/logo-transparent.png ✓");
-
-// Version fond sombre (pour partager)
-const png512dark = renderPng(svgData, 512, "#0B0B0C");
-fs.writeFileSync(path.join(assetsDir, "logo-dark.png"), png512dark);
-console.log("  src/assets/logo-dark.png ✓");
-
-// Version fond blanc
-const png512light = renderPng(svgData, 512, "#FFFFFF");
-fs.writeFileSync(path.join(assetsDir, "logo-light.png"), png512light);
-console.log("  src/assets/logo-light.png ✓");
-
-// ─── Icônes OS depuis le SVG avec fond sombre ────────────────────────────────
-const SIZES = [16, 32, 48, 64, 128, 256, 512];
-const pngBuffers = {};
-
-for (const s of SIZES) {
-  pngBuffers[s] = renderPng(svgData, s, "#0B0B0C");
+// ─── Icône transparente : juste le logo redimensionné, aucun fond ────────────
+// Pas de canvas, pas de composite — alpha channel préservé tel quel
+function makeIcon(transparent, size) {
+  return transparent.clone().resize({ w: size, h: size });
 }
 
-// PNG pour Tauri
-for (const s of [32, 64, 128, 256, 512]) {
-  fs.writeFileSync(path.join(iconsDir, `${s}x${s}.png`), pngBuffers[s]);
-}
-fs.writeFileSync(path.join(iconsDir, "128x128.png"),    pngBuffers[128]);
-fs.writeFileSync(path.join(iconsDir, "128x128@2x.png"), pngBuffers[256]);
-console.log("  PNG icônes OS : 32, 64, 128, 256, 512px ✓");
-
-// ─── ICO Windows (PNG-in-ICO : 16, 32, 48, 256) ─────────────────────────────
+// ─── Construction ICO Windows (PNG-in-ICO) ────────────────────────────────────
 function buildIco(entries) {
-  const count  = entries.length;
-  let   offset = 6 + count * 16;
-  const dirs   = entries.map(({ size, buf }) => {
+  const count = entries.length;
+  let offset = 6 + count * 16;
+  const dirs = entries.map(({ size, buf }) => {
     const d = { size, buf, offset };
     offset += buf.length;
     return d;
@@ -94,15 +94,57 @@ function buildIco(entries) {
   return Buffer.concat([header, dir, ...dirs.map((d) => d.buf)]);
 }
 
-const icoBuf = buildIco([16, 32, 48, 256].map((s) => ({ size: s, buf: pngBuffers[s] })));
+// ─── Traitement principal ─────────────────────────────────────────────────────
+console.log("Suppression du fond blanc…");
+const transparent = removeWhiteBg(src);
+
+// Versions de partage
+const dark  = addBackground(transparent, 11, 11, 12);       // #0B0B0C (thème Ronako)
+const light = addBackground(transparent, 255, 255, 255);     // blanc
+
+await transparent.write(path.join(assetsDir, "logo-transparent.png"));
+console.log("  src/assets/logo-transparent.png ✓");
+
+await dark.write(path.join(assetsDir, "logo-dark.png"));
+console.log("  src/assets/logo-dark.png ✓");
+
+await light.write(path.join(assetsDir, "logo-light.png"));
+console.log("  src/assets/logo-light.png ✓");
+
+// ─── Icônes OS avec fond Onyx + padding ──────────────────────────────────────
+console.log("Génération des icônes OS…");
+const iconSizes = [16, 32, 48, 64, 128, 256, 512];
+const iconBuffers = {};
+
+for (const s of iconSizes) {
+  const icon = makeIcon(transparent, s);
+  iconBuffers[s] = await icon.getBuffer("image/png");
+}
+
+// PNG Tauri
+for (const s of [32, 64, 128, 256, 512]) {
+  fs.writeFileSync(path.join(iconsDir, `${s}x${s}.png`), iconBuffers[s]);
+}
+fs.writeFileSync(path.join(iconsDir, "128x128.png"),    iconBuffers[128]);
+fs.writeFileSync(path.join(iconsDir, "128x128@2x.png"), iconBuffers[256]);
+console.log("  PNG icônes Tauri : 32, 64, 128, 256, 512px ✓");
+
+// ICO Windows
+const icoBuf = buildIco([16, 32, 48, 256].map((s) => ({ size: s, buf: iconBuffers[s] })));
 fs.writeFileSync(path.join(iconsDir, "icon.ico"), icoBuf);
 console.log("  icon.ico (16+32+48+256px) ✓");
 
-// ICNS macOS (PNG 256px — Tauri génère le vrai ICNS sur macOS)
-fs.writeFileSync(path.join(iconsDir, "icon.icns"), pngBuffers[256]);
+// ICNS macOS
+fs.writeFileSync(path.join(iconsDir, "icon.icns"), iconBuffers[256]);
 console.log("  icon.icns ✓");
 
+// Copier le PNG source dans les assets pour l'app
+fs.copyFileSync(srcLogo, path.join(assetsDir, "ronako-logo.png"));
+console.log("  src/assets/ronako-logo.png ✓ (copie source)");
+
 console.log(`
-Icônes générées avec succès depuis logo.svg !
-Relance l'app pour voir le logo dans la barre de titre et le Launcher.
+✅ Toutes les icônes générées depuis ronako-logo.png !
+   Fonds : transparent · dark (#0B0B0C) · light (blanc)
+   Icônes : 16→512px · .ico · .icns
+   Lance "npm run tauri dev" pour voir le nouveau logo.
 `);

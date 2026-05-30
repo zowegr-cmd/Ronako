@@ -7,6 +7,7 @@ interface ToggleProps {
   label?: string;
   size?: "sm" | "md";
   color?: "electric" | "mystic" | "success";
+  disabled?: boolean;
 }
 
 const colors = {
@@ -15,14 +16,15 @@ const colors = {
   success: "bg-success",
 };
 
-export function Toggle({ checked, onChange, label, size = "md", color = "electric" }: ToggleProps) {
+export function Toggle({ checked, onChange, label, size = "md", color = "electric", disabled }: ToggleProps) {
   const isLg = size === "md";
   return (
-    <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
+    <label className={cn("inline-flex items-center gap-2.5 select-none group", disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer")}>
       <button
         role="switch"
         aria-checked={checked}
-        onClick={() => onChange(!checked)}
+        disabled={disabled}
+        onClick={() => !disabled && onChange(!checked)}
         className={cn(
           "relative rounded-full transition-colors duration-200 focus:outline-none",
           isLg ? "w-10 h-6" : "w-8 h-5",

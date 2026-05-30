@@ -95,6 +95,112 @@ pub fn get_projects_list() -> Result<Vec<String>, String> {
     Ok(entries)
 }
 
+// ─── Bibliothèque des livrables ──────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DeliverableMeta {
+    pub id: String,
+    pub path: String,
+    pub date: String,
+    pub brief: String,
+    pub mode: String,
+    pub agents: Vec<String>,
+    pub score: f64,
+    pub real_cost: f64,
+    pub duration: u64,
+}
+
+#[tauri::command]
+pub fn save_deliverable(
+    project_path: String,
+    folder_name: String,
+    files: Vec<(String, String)>, // (nom_fichier, contenu)
+) -> Result<String, String> {
+    let base = if project_path.is_empty() || project_path == "/" {
+        app_data_dir().join("livrables")
+    } else {
+        PathBuf::from(&project_path).join(".ronako").join("livrables")
+    };
+    let dir = base.join(&folder_name);
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    for (name, content) in &files {
+        // Créer les sous-dossiers si nécessaire (ex: "outputs/marcus.md")
+        let file_path = dir.join(name);
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        fs::write(&file_path, content).map_err(|e| e.to_string())?;
+    }
+
+    Ok(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn list_deliverables(project_path: String) -> Result<Vec<DeliverableMeta>, String> {
+    let base = if project_path.is_empty() || project_path == "/" {
+        app_data_dir().join("livrables")
+    } else {
+        PathBuf::from(&project_path).join(".ronako").join("livrables")
+    };
+
+    if !base.exists() { return Ok(vec![]); }
+
+    let mut entries: Vec<DeliverableMeta> = fs::read_dir(&base)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        .filter_map(|e| {
+            let meta_path = e.path().join("meta.json");
+            let content = fs::read_to_string(&meta_path).ok()?;
+            serde_json::from_str::<DeliverableMeta>(&content).ok()
+        })
+        .collect();
+
+    // Trier par date décroissante
+    entries.sort_by(|a, b| b.date.cmp(&a.date));
+    Ok(entries)
+}
+
+#[tauri::command]
+pub fn load_deliverable_file(
+    deliverable_path: String,
+    file_name: String,
+) -> Result<String, String> {
+    let path = PathBuf::from(&deliverable_path).join(&file_name);
+    fs::read_to_string(&path).map_err(|e| format!("Fichier non trouvé : {}", e))
+}
+
+#[tauri::command]
+pub fn delete_deliverable(deliverable_path: String) -> Result<(), String> {
+    fs::remove_dir_all(&deliverable_path).map_err(|e| e.to_string())
+}
+
+// ─── Connecteurs externos (Tavily, etc.) ─────────────────────────────────────
+
+#[tauri::command]
+pub async fn tavily_search(query: String, api_key: String) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let mut body = std::collections::HashMap::new();
+    body.insert("query", query.clone());
+    body.insert("api_key", api_key);
+    body.insert("search_depth", "advanced".to_string());
+    body.insert("max_results", "8".to_string());
+    body.insert("include_answer", "true".to_string());
+
+    let response = client
+        .post("https://api.tavily.com/search")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Err(format!("Tavily erreur HTTP {}", response.status()));
+    }
+    response.text().await.map_err(|e| e.to_string())
+}
+
 // ─── Watcher journal_dev.md ───────────────────────────────────────────────────
 
 use std::sync::Mutex;

@@ -23,11 +23,8 @@ export function TitleBar() {
       className="h-10 flex items-center justify-between px-4 shrink-0 select-none border-b border-crystal/50"
     >
       {/* Logo left */}
-      <div className="flex items-center gap-2.5 pointer-events-none" data-tauri-drag-region>
-        <AppLogo size={18} />
-        <span className="text-xs font-semibold text-silk/40 tracking-widest uppercase">
-          Ronako
-        </span>
+      <div className="flex items-center pointer-events-none" data-tauri-drag-region>
+        <AppLogo size={20} />
       </div>
 
       {/* Draggable center zone */}

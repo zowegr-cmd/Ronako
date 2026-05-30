@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { TitleBar } from "./TitleBar";
 import { NavBar } from "./NavBar";
 import { ConsultantDock } from "./ConsultantDock";
@@ -10,6 +10,7 @@ import { AgentChatModal, useAgentChat } from "@/components/agents/AgentChatModal
 import { ShortcutsHelp } from "@/components/ui/ShortcutsHelp";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { ProductTour } from "@/components/onboarding/ProductTour";
+import { useSettingsStore } from "@/store/settingsStore";
 
 // Pas d'AnimatePresence mode="wait" — ça laisse un écran noir entre les pages sur WebView2.
 // Solution : simple fade-in sans exit animation. La nouvelle page entre, l'ancienne
@@ -19,6 +20,7 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { openAgent, closeChat } = useAgentChat();
+  const { focusMode, setFocusMode } = useSettingsStore();
   useKeyboardShortcuts();
 
   // Protection fermeture (6.15)
@@ -44,19 +46,39 @@ export function AppShell() {
   useEffect(() => {
     const goWorkspace = () => navigate("/workspace");
     const goSettings  = () => navigate("/settings");
+    const goPacks     = () => navigate("/packs");
     document.addEventListener("navigate-workspace", goWorkspace);
     document.addEventListener("open-settings-connectors", goSettings);
+    document.addEventListener("navigate-packs", goPacks);
     return () => {
       document.removeEventListener("navigate-workspace", goWorkspace);
       document.removeEventListener("open-settings-connectors", goSettings);
+      document.removeEventListener("navigate-packs", goPacks);
     };
   }, [navigate]);
+
+  // Écouter l'event toggle-focus depuis le raccourci clavier
+  useEffect(() => {
+    const handler = () => setFocusMode(!focusMode);
+    document.addEventListener("toggle-focus-mode", handler);
+    return () => document.removeEventListener("toggle-focus-mode", handler);
+  }, [focusMode, setFocusMode]);
 
   return (
     <div className="flex flex-col h-screen bg-onyx text-silk overflow-hidden">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
-        <NavBar />
+        <AnimatePresence initial={false}>
+          {!focusMode && (
+            <motion.div key="navbar"
+              initial={{ width: 0, opacity: 0 }} animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="overflow-hidden shrink-0">
+              <NavBar />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <main className="flex-1 overflow-hidden relative bg-onyx">
           <motion.div
             key={location.pathname}
@@ -69,7 +91,14 @@ export function AppShell() {
           </motion.div>
         </main>
       </div>
-      <ConsultantDock />
+      {!focusMode && <ConsultantDock />}
+      {focusMode && (
+        <button
+          onClick={() => setFocusMode(false)}
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-1.5 px-2.5 py-1.5 bg-graphite border border-crystal/50 rounded-xl text-[10px] text-silk/40 hover:text-silk hover:border-crystal-light transition-all">
+          ✕ Quitter Mode Focus
+        </button>
+      )}
       <ToastContainer />
       <AgentChatModal agent={openAgent} onClose={closeChat} />
       <ShortcutsHelp />

@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bookmark, Pin, X } from "lucide-react";
+import { Send, Bookmark, Pin, X, Zap } from "lucide-react";
 import type { Message, Agent } from "@/types";
+import { useSettingsStore } from "@/store/settingsStore";
 import { AgentAvatar } from "@/components/agents/AgentAvatar";
 import { MarkdownMessage } from "@/components/ui/MarkdownMessage";
 import { useAgentStore } from "@/store/agentStore";
@@ -215,8 +216,41 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
 function ChatMessage({ message, agent }: { message: Message; agent: Agent | undefined }) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
+  const { incrementIgnoredSuggestion } = useSettingsStore();
 
   if (isSystem) {
+    // Détection message suggestion (format ⚡SUGGESTION|action|cost|label|message)
+    if (message.content.startsWith("⚡SUGGESTION|")) {
+      const [, action, cost, label, ...msgParts] = message.content.split("|");
+      const msg = msgParts.join("|");
+      return (
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+          className="mx-2 my-1 bg-electric/5 border border-electric/20 rounded-xl px-3 py-2">
+          <div className="flex items-start gap-2">
+            <Zap size={12} className="text-electric shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-silk/70 leading-relaxed">{msg}</p>
+              {cost && <p className="text-[10px] text-silk/30 mt-0.5">Impact : {cost}</p>}
+            </div>
+          </div>
+          <div className="flex gap-2 mt-2 justify-end">
+            <button
+              onClick={() => { incrementIgnoredSuggestion(action); }}
+              className="text-[10px] text-silk/25 hover:text-silk/50 transition-colors">
+              Ignorer
+            </button>
+            <button
+              onClick={() => {
+                if (action.startsWith("open_pack_manager")) document.dispatchEvent(new CustomEvent("navigate-packs"));
+                else if (action === "open_pack_manager_image") document.dispatchEvent(new CustomEvent("navigate-packs"));
+              }}
+              className="text-[10px] font-medium text-electric/80 hover:text-electric border border-electric/30 rounded-lg px-2 py-0.5 transition-all">
+              {label}
+            </button>
+          </div>
+        </motion.div>
+      );
+    }
     return (
       <div className="flex justify-center py-0.5">
         <span className="text-[10px] text-silk/25 bg-graphite-light border border-crystal/30 px-2 py-0.5 rounded-full">

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Pencil, Trash2, Wrench } from "lucide-react";
+import { Pencil, Trash2, Wrench, MessageSquare } from "lucide-react";
+import { useAgentChat } from "./AgentChatModal";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/types";
 import { MODEL_LABELS, MODEL_TIER_COLOR } from "@/types";
@@ -71,26 +72,31 @@ export function AgentCard({
         </div>
 
         {/* Actions (hover) */}
-        {!agent.isSystem && (onEdit || onDelete) && (
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            {onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(agent); }}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/40 hover:text-silk hover:bg-crystal transition-all"
-              >
-                <Pencil size={12} />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(agent.id); }}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/40 hover:text-danger hover:bg-danger/10 transition-all"
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); useAgentChat.getState().openChat(agent); }}
+            title="Discuter"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/40 hover:text-electric hover:bg-electric/10 transition-all"
+          >
+            <MessageSquare size={12} />
+          </button>
+          {!agent.isSystem && onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(agent); }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/40 hover:text-silk hover:bg-crystal transition-all"
+            >
+              <Pencil size={12} />
+            </button>
+          )}
+          {!agent.isSystem && onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(agent.id); }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/40 hover:text-danger hover:bg-danger/10 transition-all"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Description */}

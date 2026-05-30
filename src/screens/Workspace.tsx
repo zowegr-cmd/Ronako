@@ -18,6 +18,8 @@ import { BudgetCounter } from "@/components/workspace/BudgetCounter";
 import { ChainProposalCard } from "@/components/workspace/ChainProposalCard";
 import { FolderContextBar } from "@/components/workspace/FolderContextBar";
 import { Button } from "@/components/ui/Button";
+import { TipBanner } from "@/components/ui/TipBanner";
+import { useTips } from "@/hooks/useTips";
 import { Badge } from "@/components/ui/Badge";
 import { useProjectStore } from "@/store/projectStore";
 import { useAgentStore } from "@/store/agentStore";
@@ -66,7 +68,7 @@ export function Workspace() {
   const {
     run, resumeFromChef, resumeFromAgent, workspaceMessages, pauseAfterCurrent,
     proposal, proposalLoading, setProposal,
-    pausedAgentMessage,
+    pausedAgentMessage, chainMode,
   } = useChainStore();
   const { hasValidApiKey } = useSettingsStore();
   const project = getActiveProject();
@@ -101,11 +103,21 @@ export function Workspace() {
   const isPausedChef = run.status === "paused_chef";
   const isPausedAgent = run.status === "paused_agent";
   const isCompleted = run.status === "completed";
+  const { activeTip, evaluateTips, dismissTip } = useTips();
 
-  // Auto-save état projet à la fin de chaque chaîne
+  // Auto-save + évaluation tips à la fin de chaque chaîne
   useEffect(() => {
     if (isCompleted && run.messages.length > 0) {
       saveState();
+      const chainState = useChainStore.getState();
+      evaluateTips({
+        lastChainCost: chainState.realCost || run.totalCost,
+        lastTwoScores: chainState.ryoResult?.score ? [chainState.ryoResult.score] : [],
+        currentMode: chainMode,
+        totalChains: 1,
+        lastScore: chainState.ryoResult?.score ?? 0,
+        teamSaved: false,
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCompleted]);
@@ -565,6 +577,9 @@ export function Workspace() {
           useChainStore.getState().addWorkspaceMessage({ role: "user", content: brief });
         }}
       />
+
+      {/* Tips contextuels (7.13) */}
+      <TipBanner tip={activeTip} onDismiss={dismissTip} />
     </div>
   );
 }

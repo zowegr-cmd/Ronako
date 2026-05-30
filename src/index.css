@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Thèmes visuels Phase 7.12 ─────────────────────────────────────────── */
+:root, [data-theme="mineral"] {
+  --color-onyx: #0B0B0C;
+  --color-graphite: #161618;
+  --color-crystal: #2A2A2C;
+  --color-silk: #F5F5F7;
+  --color-accent: #007AFF;
+}
+
+[data-theme="arctic"] {
+  --color-onyx: #F7F8FA;
+  --color-graphite: #FFFFFF;
+  --color-crystal: #E2E4E8;
+  --color-silk: #1A1A2E;
+  --color-accent: #0066CC;
+}
+
+[data-theme="forest"] {
+  --color-onyx: #0D1A12;
+  --color-graphite: #162018;
+  --color-crystal: #243028;
+  --color-silk: #E8F5E9;
+  --color-accent: #4CAF50;
+}
+
+[data-theme="sunset"] {
+  --color-onyx: #1A0A0A;
+  --color-graphite: #231212;
+  --color-crystal: #3A1A1A;
+  --color-silk: #FFF3E0;
+  --color-accent: #FF6B35;
+}
+
 @layer base {
   * {
     box-sizing: border-box;

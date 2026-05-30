@@ -77,11 +77,14 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
   const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [tempSkillIds, setTempSkillIds] = useState<string[]>([]);
   const [customDeliverableNote, setCustomDeliverableNote] = useState("");
+  const [runNote, setRunNote] = useState("");
+  const [showPresetModal, setShowPresetModal] = useState(false);
+  const [presetName, setPresetName] = useState("");
   const [customInsight, setCustomInsight] = useState<CustomDeliverableInsight | null>(null);
   const [formatAlerts, setFormatAlerts] = useState<FormatAlert[]>([]);
 
   const { skills: allSkills, setTemporarySkills, toggleSkill } = useAgentStore();
-  const { getConnectorKey } = useSettingsStore();
+  const { getConnectorKey, chainPresets, addChainPreset, deleteChainPreset } = useSettingsStore();
 
   // Analyse Haiku — contexte enrichi (skills + connecteurs dispo)
   const marcusAnalysis = useCustomDeliverableAnalysis({
@@ -257,6 +260,9 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
     }
     if (customDeliverableNote.trim()) {
       enriched += `\n\nLivrable personnalisé attendu : ${customDeliverableNote.trim()}`;
+    }
+    if (runNote.trim()) {
+      enriched += `\n\nNote pour ce run : ${runNote.trim()}`;
     }
     return enriched;
   };
@@ -844,6 +850,55 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* ── Présets de configuration (7.8) ─────────────────────── */}
+      <div className="px-4 pt-2 pb-1 border-t border-crystal/20">
+        {chainPresets.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mb-1.5">
+            {chainPresets.map((p) => (
+              <div key={p.id} className="flex items-center gap-1 bg-graphite-light border border-crystal/50 rounded-lg px-2 py-0.5 group">
+                <button onClick={() => {
+                  setChainMode(p.chainMode);
+                  setSelectedFormats(p.selectedFormats);
+                  setCustomConfig({ relayActive: p.relayActive, marcusCheckActive: p.marcusCheckActive });
+                }} className="text-[10px] text-silk/60 hover:text-silk">
+                  💾 {p.name}
+                </button>
+                <button onClick={() => deleteChainPreset(p.id)}
+                  className="opacity-0 group-hover:opacity-100 text-[8px] text-silk/20 hover:text-danger transition-all ml-0.5">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          {!showPresetModal ? (
+            <button onClick={() => setShowPresetModal(true)}
+              className="text-[10px] text-silk/25 hover:text-silk/60 transition-colors flex items-center gap-1">
+              💾 Sauvegarder comme préset
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-1">
+              <input value={presetName} onChange={(e) => setPresetName(e.target.value)}
+                placeholder="Nom du préset…" autoFocus
+                className="flex-1 bg-graphite-light border border-crystal/60 rounded-lg px-2 py-0.5 text-[10px] text-silk/70 placeholder-silk/20 focus:outline-none focus:border-electric/40" />
+              <button onClick={() => {
+                if (presetName.trim()) {
+                  addChainPreset({ name: presetName.trim(), selectedFormats, chainMode, relayActive: customConfig.relayActive, marcusCheckActive: customConfig.marcusCheckActive });
+                  setPresetName(""); setShowPresetModal(false);
+                }
+              }} className="text-[10px] font-medium text-electric/70 hover:text-electric border border-electric/30 rounded-lg px-2 py-0.5">Sauver</button>
+              <button onClick={() => setShowPresetModal(false)} className="text-[10px] text-silk/20 hover:text-silk/50">✕</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Note personnelle pour ce run (7.8) ─────────────────── */}
+      <div className="px-4 pb-2">
+        <input value={runNote} onChange={(e) => setRunNote(e.target.value)}
+          placeholder="📝 Note pour ce run (optionnel)…"
+          className="w-full bg-graphite-light border border-crystal/40 rounded-lg px-2.5 py-1.5 text-[11px] text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/30 transition-colors" />
       </div>
 
       </div>{/* fin contenu scrollable */}

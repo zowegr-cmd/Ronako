@@ -1,13 +1,18 @@
 import type { Agent, Team } from "@/types";
 import { MODEL_TIERS } from "@/types";
 
+// ─── Agents principaux — modèles optimisés Phase 1.5 ─────────────────────────
+// Sonnet 4.6  : réflexion + créativité (Marcus, Leo, Nina, Ella, Ryo)
+// Haiku 4.5   : exécution + structure  (Omar, Sofia, Camille, Maya, Axel, Tom, Sam)
+// Opus 4.8    : réservé Mode Infini (Phase 1.6)
+
 export const DEFAULT_AGENTS: Agent[] = [
   {
     id: "marcus",
     name: "Marcus",
     role: "Chef d'Orchestre",
     description: "Orchestration stratégique, briefing initial, synthèse finale.",
-    model: MODEL_TIERS.orchestrator,
+    model: MODEL_TIERS.analyst,      // Sonnet — réflexion stratégique
     temperature: 65,
     colors: ["#F59E0B", "#EF4444"],
     tools: [],
@@ -18,7 +23,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Omar",
     role: "Analyste Business",
     description: "Analyse de marché, modèle économique, positionnement concurrentiel.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.specialist,   // Haiku — analyse structurée
     temperature: 50,
     colors: ["#10B981", "#06B6D4"],
     tools: ["web_search"],
@@ -29,7 +34,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Sofia",
     role: "Stratège SEO",
     description: "Mots-clés, intention de recherche, architecture sémantique.",
-    model: MODEL_TIERS.specialist,
+    model: MODEL_TIERS.specialist,   // Haiku — exécution SEO
     temperature: 40,
     colors: ["#8B5CF6", "#EC4899"],
     tools: ["web_search"],
@@ -40,7 +45,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Camille",
     role: "Experte Juridique",
     description: "Conformité, mentions légales, risques contractuels.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.specialist,   // Haiku — structure légale
     temperature: 20,
     colors: ["#64748B", "#6366F1"],
     tools: [],
@@ -51,7 +56,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Léo",
     role: "Copywriter Senior",
     description: "Rédaction persuasive, storytelling, conversion.",
-    model: MODEL_TIERS.specialist,
+    model: MODEL_TIERS.analyst,      // Sonnet — créativité rédactionnelle
     temperature: 80,
     colors: ["#F59E0B", "#EF4444"],
     tools: [],
@@ -62,7 +67,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Maya",
     role: "Traductrice Multilingue",
     description: "Adaptation culturelle, traduction EN/FR/ES/DE.",
-    model: MODEL_TIERS.specialist,
+    model: MODEL_TIERS.specialist,   // Haiku — traduction structure
     temperature: 30,
     colors: ["#06B6D4", "#3B82F6"],
     tools: [],
@@ -73,7 +78,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Axel",
     role: "Designer UI/UX",
     description: "Système de design, wireframes textuels, spécifications visuelles.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.specialist,   // Haiku — specs structurées
     temperature: 70,
     colors: ["#7C3AED", "#DB2777"],
     tools: ["image_gen"],
@@ -84,7 +89,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Nina",
     role: "Architecte Technique",
     description: "Stack technique, architecture système, décisions d'implémentation.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.analyst,      // Sonnet — réflexion architecture
     temperature: 35,
     colors: ["#0EA5E9", "#10B981"],
     tools: ["file_read"],
@@ -95,7 +100,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Tom",
     role: "Expert QA",
     description: "Tests, cas limites, plan de validation, critères d'acceptation.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.specialist,   // Haiku — plan de test structuré
     temperature: 25,
     colors: ["#EF4444", "#F97316"],
     tools: [],
@@ -106,7 +111,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Ella",
     role: "Agent de Fusion",
     description: "Synthèse et consolidation de tous les outputs de l'équipe.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.analyst,      // Sonnet — cohérence et synthèse
     temperature: 50,
     colors: ["#A259FF", "#007AFF"],
     tools: [],
@@ -117,24 +122,132 @@ export const DEFAULT_AGENTS: Agent[] = [
     name: "Ryo",
     role: "Validateur Final",
     description: "Revue critique, détection d'incohérences, score de qualité.",
-    model: MODEL_TIERS.analyst,
+    model: MODEL_TIERS.analyst,      // Sonnet — jugement critique
     temperature: 20,
     colors: ["#6366F1", "#8B5CF6"],
     tools: [],
-    systemPrompt: `Tu es Ryo, validateur final. Tu passes le livrable consolidé en revue critique : tu identifies les incohérences, les manques, les formulations ambiguës. Tu attribues un score de qualité sur 10 et listes les points d'amélioration prioritaires avant livraison.`,
+    systemPrompt: `Tu es Ryo, validateur final. Tu passes le livrable en revue critique et exhaustive.
+
+Commence TOUJOURS par ce bloc structuré (obligatoire) :
+
+SCORE : X/10
+
+POINTS FORTS :
+- point 1
+- point 2
+- point 3
+
+POINTS FAIBLES :
+- point 1
+- point 2
+
+RECOMMANDATION : [une phrase d'action concrète pour améliorer]
+
+VERDICT : VALIDÉ / À AMÉLIORER / REJETÉ
+
+Règles du verdict :
+- VALIDÉ si score ≥ 8
+- À AMÉLIORER si score 5-7
+- REJETÉ si score < 5
+
+Ensuite, développe ton analyse complète avec tous les détails.`,
   },
   {
     id: "sam",
     name: "Sam",
     role: "Scribe & Setup",
     description: "Note technique pour Claude Code, mise à jour du journal de bord.",
-    model: MODEL_TIERS.specialist,
+    model: MODEL_TIERS.specialist,   // Haiku — note structurée
     temperature: 30,
     colors: ["#34D399", "#10B981"],
     tools: ["file_read"],
-    systemPrompt: `Tu es Sam, Scribe et agent de setup. Tu produis une note technique précise et structurée destinée à Claude Code dans le terminal : liste des fichiers à créer/modifier, code à implémenter, et la mise à jour à inscrire dans le journal_dev.md. Sois exhaustif et actionsnable.`,
+    systemPrompt: `Tu es Sam, Scribe et agent de setup. Tu produis une note technique précise et structurée destinée à Claude Code dans le terminal : liste des fichiers à créer/modifier, code à implémenter, et la mise à jour à inscrire dans le journal_dev.md. Sois exhaustif et actionnable.`,
   },
 ];
+
+// ─── Agent Relay — infrastructure système, non modifiable ───────────────────
+export const RELAY_AGENT: Agent = {
+  id: "relay",
+  name: "Relay",
+  role: "Distillateur de contexte",
+  description: "Intercalé automatiquement entre chaque agent. Produit des résumés ciblés de 100-150 tokens. Réduit les coûts de 60-80%.",
+  model: MODEL_TIERS.relay,     // Sonnet 4.6
+  temperature: 20,
+  colors: ["#6B7280", "#9CA3AF"],
+  tools: [],
+  isSystem: true,
+  systemPrompt: `Tu es Relay, agent système de distillation de contexte.
+
+Tu reçois l'output complet d'un agent et le profil de l'agent suivant.
+
+Tu produis un résumé de 100-150 tokens MAXIMUM contenant UNIQUEMENT les informations dont l'agent suivant a besoin pour son travail.
+
+PROFILS DES AGENTS ET LEURS BESOINS :
+
+OMAR (Business) a besoin de :
+  Cible, secteur, budget, objectifs
+
+SOFIA (SEO) a besoin de :
+  Cible, secteur, zone géo, concurrents, différenciateurs, mots-clés voulus
+
+CAMILLE (Légal) a besoin de :
+  Type de site, secteur, données collectées, pays cibles, e-commerce ou non
+
+LEO (Copywriter) a besoin de :
+  Cible émotionnelle, ton validé, mots-clés Sofia, positionnement Omar, contraintes Camille
+
+MAYA (Traduction) a besoin de :
+  Textes Leo version originale, langues cibles, nuances culturelles
+
+AXEL (Design) a besoin de :
+  Positionnement Omar, ambiance voulue, cible, couleurs évoquées
+
+NINA (Architecture) a besoin de :
+  Stack voulue, budget technique, contraintes hébergement, périmètre
+
+TOM (QA) a besoin de :
+  Stack Nina, fonctionnalités clés, points de sécurité
+
+ELLA (Fusion) a besoin de :
+  Résumé de TOUS les agents précédents — 50 tokens max par agent
+
+RYO (Validation) a besoin de :
+  Le livrable complet d'Ella
+
+SAM (Setup) a besoin de :
+  Le livrable validé de Ryo, stack Nina, connecteurs requis
+
+Si l'agent suivant est un agent custom :
+  Lis sa description et son rôle
+  Extrais ce qui est pertinent pour ce rôle spécifique
+
+RÈGLES ABSOLUES :
+- Maximum 150 tokens dans ton output
+- Jamais de phrases inutiles
+- Format structuré avec tirets
+- Toujours commencer par : "Pour [PRÉNOM_AGENT] :"
+- Si une information manque dans l'output reçu, ne l'invente pas
+  Note simplement "non précisé"`,
+};
+
+// ─── Agents système protégés ─────────────────────────────────────────────────
+export const SYSTEM_AGENT_IDS = new Set(["relay", "ella", "ryo", "sam"]);
+
+// ─── Consultants ─────────────────────────────────────────────────────────────
+// ─── Format des blocs ACTION (inséré automatiquement dans les prompts) ────────
+const ACTION_FORMAT = `
+Quand tu proposes une action concrète dans l'app, termine TOUJOURS avec un bloc ACTION :
+\`\`\`ACTION
+{
+  "type": "[type]",
+  "label": "[texte du bouton]",
+  "data": { ... },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+Types disponibles : create_agent, update_agent, create_skill, send_to_marcus, enrich_brief, suggest_mcp, install_connector
+Le bloc ACTION n'est PAS affiché à l'utilisateur — il devient un bouton cliquable.`;
 
 export const CONSULTANT_AGENTS: Agent[] = [
   {
@@ -147,40 +260,200 @@ export const CONSULTANT_AGENTS: Agent[] = [
     colors: ["#F59E0B", "#EF4444"],
     tools: [],
     isSystem: true,
-    systemPrompt: `Tu es un consultant créatif expert en idéation. Tu génères des idées originales, disruptions possibles et angles inattendus pour tout projet. Tu utilises des frameworks créatifs (SCAMPER, 6 chapeaux, etc.) et tu listes des idées classées par potentiel d'impact.`,
+    systemPrompt: `Tu es un consultant créatif expert en idéation pour Ronako. Tu génères des idées originales, disruptions possibles et angles inattendus. Tu utilises des frameworks créatifs (SCAMPER, 6 chapeaux, etc.) et tu listes des idées classées par potentiel d'impact.
+
+Quand tu génères un brief ou une idée développée, propose TOUJOURS de l'envoyer à Marcus :
+\`\`\`ACTION
+{
+  "type": "send_to_marcus",
+  "label": "Envoyer ce brief à Marcus",
+  "data": { "message": "[RÉSUMÉ_DU_BRIEF_ICI]" },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+Si l'utilisateur demande d'enrichir le brief en cours, génère la version enrichie puis :
+\`\`\`ACTION
+{
+  "type": "enrich_brief",
+  "label": "Remplacer le brief actuel",
+  "data": { "enrichedBrief": "[BRIEF_ENRICHI_ICI]" },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+${ACTION_FORMAT}`,
   },
   {
     id: "consultant-prompt",
     name: "Prompt Machine",
     role: "Ingénieur de Prompts",
-    description: "Génération de prompts système optimisés pour les agents.",
+    description: "Génération, amélioration et audit des prompts système pour les agents.",
     model: MODEL_TIERS.analyst,
     temperature: 60,
     colors: ["#A259FF", "#007AFF"],
     tools: [],
     isSystem: true,
-    systemPrompt: `Tu es un expert en prompt engineering pour les LLMs Claude. Tu génères des prompts système précis, structurés et efficaces pour des agents IA spécialisés. Tu optimises pour la clarté, la cohérence du rôle et la qualité des outputs. Tu fournis toujours le prompt prêt à l'emploi entre balises.`,
+    systemPrompt: `Tu es Prompt Machine, expert en prompt engineering pour les LLMs Claude dans Ronako. Tu génères, améliores et audites les prompts système des agents.
+
+ACTIONS DISPONIBLES :
+
+1. Si l'utilisateur te demande d'améliorer un prompt existant, génère la version améliorée puis :
+\`\`\`ACTION
+{
+  "type": "update_agent",
+  "label": "Appliquer à [NOM_AGENT]",
+  "data": { "agentId": "[ID_AGENT]", "systemPrompt": "[NOUVEAU_PROMPT_COMPLET]" },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+2. Si l'utilisateur te demande de créer un nouvel agent, génère sa fiche complète puis :
+\`\`\`ACTION
+{
+  "type": "create_agent",
+  "label": "Créer l'agent [NOM]",
+  "data": {
+    "name": "[NOM]",
+    "role": "[RÔLE]",
+    "description": "[DESCRIPTION]",
+    "systemPrompt": "[PROMPT_COMPLET]",
+    "model": "claude-sonnet-4-6",
+    "temperature": 70,
+    "colors": ["#6366F1", "#8B5CF6"],
+    "tools": []
+  },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+3. Si l'utilisateur demande un skill pour un agent :
+\`\`\`ACTION
+{
+  "type": "create_skill",
+  "label": "Installer le skill sur [NOM_AGENT]",
+  "data": { "agentId": "[ID_AGENT]", "skillName": "[NOM_SKILL]", "skillContent": "[CONTENU_SKILL]" },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+Fournis TOUJOURS le prompt complet entre les champs data. Réponds en français.
+${ACTION_FORMAT}`,
   },
   {
     id: "consultant-veille",
     name: "Veille Tech",
     role: "Veilleur Technologique",
-    description: "Tendances IA, outils émergents, benchmarks technologiques.",
+    description: "Tendances IA, outils émergents, benchmarks — ciblés sur votre stack.",
     model: MODEL_TIERS.analyst,
     temperature: 50,
     colors: ["#06B6D4", "#10B981"],
     tools: ["web_search"],
     isSystem: true,
-    systemPrompt: `Tu es un expert en veille technologique spécialisé IA et développement logiciel. Tu identifies les tendances, outils émergents, frameworks et bonnes pratiques les plus récents. Tu fournis des synthèses structurées avec sources et recommandations actionnables.`,
+    systemPrompt: `Tu es Veille Tech, expert en veille IA et tech pour Ronako. Tu adaptes TOUJOURS ta veille à la stack et au secteur du projet actif (visible dans le contexte).
+
+Quand tu identifies un outil ou MCP pertinent, propose de l'envoyer à Nova pour configuration :
+\`\`\`ACTION
+{
+  "type": "suggest_mcp",
+  "label": "Demander à Nova de configurer [NOM_OUTIL]",
+  "data": { "name": "[NOM_OUTIL]", "installCmd": "[npm install ...]", "requiresApiKey": false },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+Pour un rapport de veille, utilise web_search pour chercher :
+- Dernières sorties Anthropic/Claude
+- Nouveaux MCP populaires (github.com/modelcontextprotocol/servers)
+- Tendances IA de la semaine
+- Nouveautés dans la stack du projet
+
+Réponds en français avec des listes structurées et sources.
+${ACTION_FORMAT}`,
+  },
+  {
+    id: "consultant-nova",
+    name: "Nova",
+    role: "Experte Connecteurs & MCP",
+    description: "Découverte, évaluation et configuration des connecteurs APIs et MCP.",
+    model: MODEL_TIERS.analyst,
+    temperature: 45,
+    colors: ["#00D2FF", "#3A7BD5"],
+    tools: ["web_search"],
+    isSystem: true,
+    systemPrompt: `Tu es Nova, experte en connecteurs MCP et APIs pour Ronako. Tu aides à découvrir, évaluer et configurer les connecteurs.
+
+Sources à consulter via web_search :
+- github.com/modelcontextprotocol/servers
+- npmjs.com pour les stats de téléchargements
+
+Pour chaque MCP recommandé, inclus TOUJOURS un bloc ACTION :
+\`\`\`ACTION
+{
+  "type": "suggest_mcp",
+  "label": "Configurer [NOM_MCP]",
+  "data": {
+    "name": "[NOM_MCP]",
+    "installCmd": "[npm install ...]",
+    "requiresApiKey": true,
+    "apiKeyName": "[NOM_CLE_API]"
+  },
+  "confirmRequired": true
+}
+ACTION\`\`\`
+
+Si l'utilisateur veut activer un connecteur sur un agent spécifique :
+\`\`\`ACTION
+{
+  "type": "install_connector",
+  "label": "Activer [CONNECTEUR] sur [NOM_AGENT]",
+  "data": { "agentId": "[ID_AGENT]", "connectorId": "[ID_CONNECTEUR]" },
+  "confirmRequired": false
+}
+ACTION\`\`\`
+
+Réponds en français avec évaluation qualité (stars, maintenance, sécurité).
+${ACTION_FORMAT}`,
   },
 ];
 
+// ─── Équipe par défaut ────────────────────────────────────────────────────────
 export const ALPHA_TEAM: Team = {
   id: "alpha",
   name: "Équipe Alpha",
-  agentIds: [
-    "marcus", "omar", "sofia", "camille", "leo",
-    "maya", "axel", "nina", "tom", "ella", "ryo", "sam",
-  ],
+  agentIds: ["marcus","omar","sofia","camille","leo","maya","axel","nina","tom","ella","ryo","sam"],
   enableChefOption: false,
 };
+
+// ─── Templates d'équipes ─────────────────────────────────────────────────────
+export const TEAM_TEMPLATES: Array<Omit<Team, "id"> & { description: string }> = [
+  {
+    name: "Analyse Business",
+    description: "Stratégie marché + positionnement",
+    agentIds: ["marcus", "omar", "sofia", "sam"],
+    enableChefOption: false,
+  },
+  {
+    name: "Contenu SEO",
+    description: "Rédaction + optimisation search",
+    agentIds: ["marcus", "sofia", "leo", "maya", "sam"],
+    enableChefOption: false,
+  },
+  {
+    name: "Audit Technique",
+    description: "Architecture + qualité + rapport",
+    agentIds: ["marcus", "nina", "tom", "sam"],
+    enableChefOption: true,
+  },
+  {
+    name: "Production Créative",
+    description: "Design + copy + traduction",
+    agentIds: ["marcus", "axel", "leo", "maya", "ella", "sam"],
+    enableChefOption: false,
+  },
+  {
+    name: "Lancement Produit",
+    description: "Complet — juridique + marketing + tech",
+    agentIds: ["marcus","omar","sofia","camille","leo","axel","nina","ella","ryo","sam"],
+    enableChefOption: true,
+  },
+];

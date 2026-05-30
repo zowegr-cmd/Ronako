@@ -426,7 +426,7 @@ Visuels       : URLs images stockées dans .ronako/visuals/
              les connecteurs visuels via
              l'onglet Connecteurs de l'agent
 
-[ ] 7.7  Marcus proactif — Skills + Connecteurs
+[x] 7.7  Marcus proactif — Skills + Connecteurs
          Pendant le briefing :
            Détecte skills/connecteurs pertinents
            Max 1 suggestion par session
@@ -438,7 +438,7 @@ Visuels       : URLs images stockées dans .ronako/visuals/
            Suggère le correctif
          Marcus compose un pack personnalisé
 
-[ ] 7.8  ChainProposalCard — Améliorations
+[x] 7.8  ChainProposalCard — Améliorations
          Skills + connecteurs dans la popup
          Temporaires par défaut (badge ⏱)
          Coût mis à jour en temps réel
@@ -450,27 +450,27 @@ Visuels       : URLs images stockées dans .ronako/visuals/
          Note personnelle sur le run
          Drag & drop agents dans la popup
 
-[ ] 7.9  Persona de Marcus
+[x] 7.9  Persona de Marcus
          Direct / Détaillé / Coach / Expert
 
-[ ] 7.10 Mode Focus
+[x] 7.10 Mode Focus
          Que le chat Marcus visible
 
 [x] 7.11 Mode Présentation
          Livrable plein écran pour client (onglet dans DeliverablePanel)
 
-[ ] 7.12 Thèmes visuels
+[x] 7.12 Thèmes visuels
          Minéral / Arctic / Forest / Sunset
 
-[ ] 7.13 Tips contextuels
+[x] 7.13 Tips contextuels
          Différents des tooltips ⓘ
          Basés sur l'usage réel
          Disparaissent après lecture
 
-[ ] 7.14 Niveau d'expertise adaptatif
+[x] 7.14 Niveau d'expertise adaptatif
          Débutant / Intermédiaire / Expert
 
-[ ] 7.15 Langue des livrables séparée
+[x] 7.15 Langue des livrables séparée
          Interface FR + livrables EN possible
 
 [ ] 7.16 Ronako Score mensuel
