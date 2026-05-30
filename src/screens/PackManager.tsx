@@ -779,16 +779,39 @@ function ApisTab() {
 
 // Endpoints de test rapide par API
 const TEST_ENDPOINTS: Record<string, { url: string; auth: "bearer" | "header"; headerName?: string }> = {
-  openai:     { url: "https://api.openai.com/v1/models", auth: "bearer" },
-  github:     { url: "https://api.github.com/user", auth: "bearer" },
-  notion:     { url: "https://api.notion.com/v1/users/me", auth: "bearer" },
-  stripe:     { url: "https://api.stripe.com/v1/account", auth: "bearer" },
-  airtable:   { url: "https://api.airtable.com/v0/meta/whoami", auth: "bearer" },
-  sendgrid:   { url: "https://api.sendgrid.com/v3/user/profile", auth: "bearer" },
-  hubspot:    { url: "https://api.hubapi.com/crm/v3/objects/contacts?limit=1", auth: "bearer" },
-  pipedrive:  { url: "https://api.pipedrive.com/v1/users/me", auth: "header", headerName: "x-api-token" },
-  firecrawl:  { url: "https://api.firecrawl.dev/v1/scrape", auth: "bearer" },
-  elevenlabs: { url: "https://api.elevenlabs.io/v1/user", auth: "header", headerName: "xi-api-key" },
+  // Génération IA
+  openai:      { url: "https://api.openai.com/v1/models", auth: "bearer" },
+  bfl:         { url: "https://api.bfl.ml/v1/user", auth: "header", headerName: "X-Key" },
+  replicate:   { url: "https://api.replicate.com/v1/account", auth: "bearer" },
+  elevenlabs:  { url: "https://api.elevenlabs.io/v1/user", auth: "header", headerName: "xi-api-key" },
+  stability:   { url: "https://api.stability.ai/v1/user/account", auth: "bearer" },
+  // Recherche & Data
+  tavily:      { url: "https://api.tavily.com/search", auth: "bearer" },
+  serper:      { url: "https://google.serper.dev/search", auth: "header", headerName: "X-API-Key" },
+  firecrawl:   { url: "https://api.firecrawl.dev/v1/scrape", auth: "bearer" },
+  // Dev & Code
+  github:      { url: "https://api.github.com/user", auth: "bearer" },
+  e2b:         { url: "https://api.e2b.dev/sandboxes", auth: "header", headerName: "X-API-Key" },
+  gitlab:      { url: "https://gitlab.com/api/v4/user", auth: "bearer" },
+  vercel:      { url: "https://api.vercel.com/v2/user", auth: "bearer" },
+  supabase:    { url: "https://api.supabase.com/v1/projects", auth: "bearer" },
+  // Productivité
+  notion:      { url: "https://api.notion.com/v1/users/me", auth: "bearer" },
+  airtable:    { url: "https://api.airtable.com/v0/meta/whoami", auth: "bearer" },
+  slack:       { url: "https://slack.com/api/auth.test", auth: "bearer" },
+  linear:      { url: "https://api.linear.app/graphql", auth: "bearer" },
+  // Communication
+  sendgrid:    { url: "https://api.sendgrid.com/v3/user/profile", auth: "bearer" },
+  resend:      { url: "https://api.resend.com/domains", auth: "bearer" },
+  // Business & CRM
+  stripe:      { url: "https://api.stripe.com/v1/account", auth: "bearer" },
+  hubspot:     { url: "https://api.hubapi.com/crm/v3/objects/contacts?limit=1", auth: "bearer" },
+  pipedrive:   { url: "https://api.pipedrive.com/v1/users/me", auth: "header", headerName: "x-api-token" },
+  salesforce:  { url: "https://login.salesforce.com/services/data/v56.0/sobjects", auth: "bearer" },
+  // Analytics
+  ga4:         { url: "https://analyticsdata.googleapis.com/v1beta/properties", auth: "bearer" },
+  mixpanel:    { url: "https://api.mixpanel.com/engage?where=1%3D%3D1&page_size=1", auth: "bearer" },
+  plausible:   { url: "https://plausible.io/api/v1/sites", auth: "bearer" },
 };
 
 function ApiCard({ api, currentKey, onSave, onDelete }: {
@@ -816,7 +839,7 @@ function ApiCard({ api, currentKey, onSave, onDelete }: {
     if (!key) return;
     const endpoint = TEST_ENDPOINTS[api.id];
     if (!endpoint) {
-      setTestResult({ ok: true, msg: "Clé enregistrée (test non disponible pour cette API)" });
+      setTestResult({ ok: true, msg: "ℹ️ Clé sauvegardée — pas d'endpoint de test pour cette API" });
       return;
     }
     setTesting(true); setTestResult(null);
