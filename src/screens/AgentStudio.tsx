@@ -108,7 +108,7 @@ export function AgentStudio() {
         </div>
 
         {/* Liste agents */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-tour="agent-grid">
           {filtered.length === 0 && !search && (
             <p className="text-[11px] text-silk/25 text-center py-4">Aucun agent</p>
           )}
@@ -190,6 +190,7 @@ export function AgentStudio() {
             <div className="flex border-b border-crystal/50 shrink-0">
               {(["config", "prompt", "skills", "connectors"] as EditorTab[]).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
+                  {...(tab === "skills" ? { "data-tour": "skills-tab" } : tab === "connectors" ? { "data-tour": "connectors-tab" } : {})}
                   className={cn("flex-1 py-2.5 text-xs font-medium transition-colors capitalize",
                     activeTab === tab ? "text-electric border-b-2 border-electric -mb-px" : "text-silk/35 hover:text-silk/60")}>
                   {tab === "config" ? "⚙️ Config" : tab === "prompt" ? "📝 Prompt" : tab === "skills" ? "⚡ Skills" : "🔌 Connecteurs"}
@@ -250,8 +251,12 @@ export function AgentStudio() {
 
 // ─── Sidebar item ─────────────────────────────────────────────────────────────
 function SidebarItem({ agent, isSelected, isSystem, onClick }: { agent: Agent; isSelected: boolean; isSystem?: boolean; onClick: () => void }) {
+  const handleClick = () => {
+    onClick();
+    if (agent.id === "sofia") document.dispatchEvent(new Event("tour-sofia-clicked"));
+  };
   return (
-    <button onClick={onClick} className={cn(
+    <button data-agent-id={agent.id} onClick={handleClick} className={cn(
       "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-all",
       isSelected ? "bg-electric/10 border-r-2 border-electric" : "hover:bg-graphite-light",
       isSystem && "opacity-60",

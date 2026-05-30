@@ -286,7 +286,9 @@ export function Workspace() {
         </div>
 
         {/* ── Sélecteur Mode de Chaîne ─────────────────────────── */}
-        <ChainModeSelector />
+        <div data-tour="mode-selector">
+          <ChainModeSelector />
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <BudgetCounter />
@@ -308,6 +310,7 @@ export function Workspace() {
             </Button>
           ) : (
             <Button
+              data-tour="launch-button"
               variant="primary"
               size="sm"
               disabled={proposalLoading || isRunning}
@@ -432,7 +435,7 @@ export function Workspace() {
             )}
           </AnimatePresence>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden" data-tour="marcus-chat">
             <OrchestratorChat
               onSend={handleChat}
               disabled={isRunning || proposalLoading}
@@ -496,6 +499,7 @@ export function Workspace() {
               <button
                 key={tab}
                 onClick={() => setSideTab(tab)}
+                {...(tab === "library" ? { "data-tour": "library-tab" } : {})}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-all",
                   sideTab === tab

@@ -267,6 +267,50 @@ Phase 7 G-H :
 
 ---
 
+## SESSION 2026-05-30 — Product Tour refait (highlight réel)
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ ProductTour.tsx — réécriture complète
+     Spotlight via box-shadow + ring electric (pas clip-path — WebView2)
+     Tooltip auto-positionné (dessous > dessus > droite > gauche)
+     Flèche CSS pointant vers l'élément
+     Navigation automatique entre routes (useNavigate + useLocation)
+     Retry 20× / 120ms si élément pas encore rendu
+     Steps interactifs : event listener + timeout 10s → "Continuer sans essayer"
+     Keyboard : → suivant / ← précédent / Esc = fermer
+     Overlay pointer-events: none (cibles restent cliquables)
+     Trigger depuis Settings inchangé
+✅ data-tour sur tous les éléments ciblés :
+     Workspace : marcus-chat, launch-button, mode-selector, library-tab
+     OrchestratorChat : textarea-brief
+     DeliverablePanel : score-ryo
+     AgentStudio : agent-grid, skills-tab, connectors-tab
+     Orchestrator : chain-dnd, relay-indicator (1er nœud)
+     ConsultantDock : consultant-dock-button
+✅ Events dispatchers :
+     SidebarItem Sofia → tour-sofia-clicked
+     handleDragEnd → tour-dnd-moved
+     ConsultantDock open → tour-dock-opened
+✅ TypeScript 0 erreurs
+```
+
+### FICHIERS MODIFIÉS
+```
+src/components/onboarding/ProductTour.tsx     (réécriture complète)
+src/screens/Workspace.tsx                     (4 data-tour)
+src/components/workspace/OrchestratorChat.tsx (data-tour textarea)
+src/components/workspace/DeliverablePanel.tsx (data-tour score-ryo)
+src/screens/AgentStudio.tsx                   (data-tour + data-agent-id + event sofia)
+src/screens/Orchestrator.tsx                  (data-tour chain-dnd + relay + event dnd)
+src/components/layout/ConsultantDock.tsx      (data-tour + event dock)
+```
+
+### ÉTAT ACTUEL
+Product Tour type Notion/Linear — highlight réel sur l'élément, tooltip positionné automatiquement, navigation entre routes. TypeScript 0 erreurs.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

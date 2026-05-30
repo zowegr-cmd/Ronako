@@ -135,7 +135,7 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
 
       {/* ── Score Ryo ─────────────────────────────────────────────── */}
       {ryoResult && ryoResult.score > 0 && (
-        <div className="px-3 py-3 border-b border-crystal/30 shrink-0" style={{ backgroundColor: ryoResult.scoreBg }}>
+        <div data-tour="score-ryo" className="px-3 py-3 border-b border-crystal/30 shrink-0" style={{ backgroundColor: ryoResult.scoreBg }}>
           {/* Score header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
