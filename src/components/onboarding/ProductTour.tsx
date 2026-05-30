@@ -249,11 +249,22 @@ export function ProductTour({ onComplete }: ProductTourProps) {
       return;
     }
     const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // Clamper au viewport pour que le ring bleu ne dépasse jamais les bords
+    const rawTop    = rect.top    - SPOTLIGHT_PADDING;
+    const rawLeft   = rect.left   - SPOTLIGHT_PADDING;
+    const rawBottom = rect.bottom + SPOTLIGHT_PADDING;
+    const rawRight  = rect.right  + SPOTLIGHT_PADDING;
+    const clampedTop    = Math.max(0, rawTop);
+    const clampedLeft   = Math.max(0, rawLeft);
+    const clampedBottom = Math.min(vh, rawBottom);
+    const clampedRight  = Math.min(vw, rawRight);
     const sr: SpotlightRect = {
-      top: rect.top - SPOTLIGHT_PADDING,
-      left: rect.left - SPOTLIGHT_PADDING,
-      width: rect.width + SPOTLIGHT_PADDING * 2,
-      height: rect.height + SPOTLIGHT_PADDING * 2,
+      top:    clampedTop,
+      left:   clampedLeft,
+      width:  Math.max(0, clampedRight  - clampedLeft),
+      height: Math.max(0, clampedBottom - clampedTop),
     };
     const isInteractive = TOUR_STEPS[stepIndex]?.interactive ?? false;
     setSpotlight(sr);
