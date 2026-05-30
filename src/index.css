@@ -2,60 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Thèmes visuels — Variables RGB par canal (Tailwind alpha-value support) ── */
+/* ─── Thèmes visuels — Override direct des classes Tailwind par thème ── */
 /*
-  Format : --ch-X : "R G B"  (canaux séparés par espaces)
-  Tailwind utilise : rgb(var(--ch-X) / alpha)
-  Cela permet bg-onyx/50, text-silk/40, etc. de fonctionner avec les thèmes.
+  Approche : sélecteurs html[data-theme="X"] avec spécificité supérieure
+  aux classes Tailwind — fonctionne sans rebuild.
 */
 
-:root, [data-theme="mineral"] {
-  --ch-onyx:           11 11 12;      /* #0B0B0C */
-  --ch-graphite:       22 22 24;      /* #161618 */
-  --ch-graphite-light: 28 28 30;      /* #1C1C1E */
-  --ch-crystal:        42 42 44;      /* #2A2A2C */
-  --ch-crystal-light:  58 58 60;      /* #3A3A3C */
-  --ch-silk:           245 245 247;   /* #F5F5F7 */
-  /* Compat legacy */
+/* Thème Arctic — fond clair */
+html[data-theme="arctic"],
+html[data-theme="arctic"] body,
+html[data-theme="arctic"] #root { background: #F7F8FA; color: #1A1A2E; }
+
+html[data-theme="arctic"] .bg-onyx           { background-color: #F7F8FA; }
+html[data-theme="arctic"] .bg-graphite        { background-color: #FFFFFF; }
+html[data-theme="arctic"] .bg-graphite-light  { background-color: #F0F2F5; }
+html[data-theme="arctic"] .text-silk          { color: #1A1A2E; }
+html[data-theme="arctic"] .text-silk\/40      { color: rgba(26,26,46,0.4); }
+html[data-theme="arctic"] .text-silk\/60      { color: rgba(26,26,46,0.6); }
+html[data-theme="arctic"] .text-silk\/70      { color: rgba(26,26,46,0.7); }
+html[data-theme="arctic"] .border-crystal     { border-color: #D0D4DB; }
+html[data-theme="arctic"] .border-crystal\/50 { border-color: rgba(208,212,219,0.5); }
+html[data-theme="arctic"] .bg-crystal         { background-color: #E2E4E8; }
+html[data-theme="arctic"] .bg-crystal\/50     { background-color: rgba(226,228,232,0.5); }
+
+/* Thème Forest — sombre vert */
+html[data-theme="forest"],
+html[data-theme="forest"] body,
+html[data-theme="forest"] #root { background: #0D1A12; color: #E8F5E9; }
+
+html[data-theme="forest"] .bg-onyx           { background-color: #0D1A12; }
+html[data-theme="forest"] .bg-graphite        { background-color: #162018; }
+html[data-theme="forest"] .bg-graphite-light  { background-color: #1A281E; }
+html[data-theme="forest"] .text-silk          { color: #E8F5E9; }
+html[data-theme="forest"] .text-silk\/40      { color: rgba(232,245,233,0.4); }
+html[data-theme="forest"] .text-silk\/60      { color: rgba(232,245,233,0.6); }
+html[data-theme="forest"] .text-silk\/70      { color: rgba(232,245,233,0.7); }
+html[data-theme="forest"] .border-crystal     { border-color: #2A4038; }
+html[data-theme="forest"] .border-crystal\/50 { border-color: rgba(42,64,56,0.5); }
+html[data-theme="forest"] .bg-crystal         { background-color: #243028; }
+html[data-theme="forest"] .bg-crystal\/50     { background-color: rgba(36,48,40,0.5); }
+
+/* Thème Sunset — sombre chaud */
+html[data-theme="sunset"],
+html[data-theme="sunset"] body,
+html[data-theme="sunset"] #root { background: #1A0A0A; color: #FFF3E0; }
+
+html[data-theme="sunset"] .bg-onyx           { background-color: #1A0A0A; }
+html[data-theme="sunset"] .bg-graphite        { background-color: #231212; }
+html[data-theme="sunset"] .bg-graphite-light  { background-color: #2A1612; }
+html[data-theme="sunset"] .text-silk          { color: #FFF3E0; }
+html[data-theme="sunset"] .text-silk\/40      { color: rgba(255,243,224,0.4); }
+html[data-theme="sunset"] .text-silk\/60      { color: rgba(255,243,224,0.6); }
+html[data-theme="sunset"] .text-silk\/70      { color: rgba(255,243,224,0.7); }
+html[data-theme="sunset"] .border-crystal     { border-color: #4A2020; }
+html[data-theme="sunset"] .border-crystal\/50 { border-color: rgba(74,32,32,0.5); }
+html[data-theme="sunset"] .bg-crystal         { background-color: #3A1A1A; }
+html[data-theme="sunset"] .bg-crystal\/50     { background-color: rgba(58,26,26,0.5); }
+
+/* Mineral (défaut) — s'assurer que html/body ont la bonne couleur */
+:root, html[data-theme="mineral"],
+html:not([data-theme]) {
   --color-onyx: #0B0B0C;
   --color-graphite: #1C1C1E;
   --color-accent: #007AFF;
-}
-
-[data-theme="arctic"] {
-  --ch-onyx:           247 248 250;   /* #F7F8FA — fond très clair */
-  --ch-graphite:       255 255 255;   /* #FFFFFF */
-  --ch-graphite-light: 248 250 252;   /* #F8FAFC */
-  --ch-crystal:        226 228 232;   /* #E2E4E8 */
-  --ch-crystal-light:  210 212 218;   /* #D2D4DA */
-  --ch-silk:           26 26 46;      /* #1A1A2E — texte sombre */
-  --color-onyx: #F7F8FA;
-  --color-graphite: #F8FAFC;
-  --color-accent: #0066CC;
-}
-
-[data-theme="forest"] {
-  --ch-onyx:           13 26 18;      /* #0D1A12 */
-  --ch-graphite:       22 32 24;      /* #162018 */
-  --ch-graphite-light: 26 40 30;      /* #1A281E */
-  --ch-crystal:        36 48 40;      /* #243028 */
-  --ch-crystal-light:  50 68 55;      /* #324437 */
-  --ch-silk:           232 245 233;   /* #E8F5E9 */
-  --color-onyx: #0D1A12;
-  --color-graphite: #1A281E;
-  --color-accent: #4CAF50;
-}
-
-[data-theme="sunset"] {
-  --ch-onyx:           26 10 10;      /* #1A0A0A */
-  --ch-graphite:       35 18 18;      /* #231212 */
-  --ch-graphite-light: 42 22 18;      /* #2A1612 */
-  --ch-crystal:        58 26 26;      /* #3A1A1A */
-  --ch-crystal-light:  75 35 32;      /* #4B2320 */
-  --ch-silk:           255 243 224;   /* #FFF3E0 */
-  --color-onyx: #1A0A0A;
-  --color-graphite: #2A1612;
-  --color-accent: #FF6B35;
 }
 
 @layer components {
@@ -75,7 +84,7 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
-    background: #0B0B0C;
+    background: #0B0B0C; /* Minéral par défaut — overridé par les règles de thème ci-dessus */
     color: #F5F5F7;
   }
 

@@ -5,22 +5,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Couleurs thémables — réagissent aux CSS vars (data-theme)
-        onyx:            "rgb(var(--ch-onyx) / <alpha-value>)",
-        graphite:        "rgb(var(--ch-graphite) / <alpha-value>)",
-        "graphite-light":"rgb(var(--ch-graphite-light) / <alpha-value>)",
-        crystal:         "rgb(var(--ch-crystal) / <alpha-value>)",
-        "crystal-light": "rgb(var(--ch-crystal-light) / <alpha-value>)",
-        silk:            "rgb(var(--ch-silk) / <alpha-value>)",
-        "silk-dim":      "rgb(var(--ch-silk) / 0.5)",
-        // Couleurs fixes (ne changent pas avec le thème)
-        electric:        "#007AFF",
-        "electric-dim":  "rgba(0,122,255,0.15)",
-        mystic:          "#A259FF",
-        "mystic-dim":    "rgba(162,89,255,0.15)",
-        success:         "#30D158",
-        warning:         "#FF9F0A",
-        danger:          "#FF453A",
+        // Thème Mineral (défaut) — hardcodé pour Tailwind
+        // Les autres thèmes sont appliqués via des overrides CSS dans index.css
+        onyx: "#0B0B0C",
+        graphite: "#161618",
+        "graphite-light": "#1C1C1E",
+        crystal: "#2A2A2C",
+        "crystal-light": "#3A3A3C",
+        silk: "#F5F5F7",
+        "silk-dim": "rgba(245,245,247,0.5)",
+        electric: "#007AFF",
+        "electric-dim": "rgba(0,122,255,0.15)",
+        mystic: "#A259FF",
+        "mystic-dim": "rgba(162,89,255,0.15)",
+        success: "#30D158",
+        warning: "#FF9F0A",
+        danger: "#FF453A",
       },
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "SF Pro Display", "sans-serif"],
