@@ -332,42 +332,38 @@ export function ProductTour({ onComplete }: ProductTourProps) {
   const tp = tooltipPos ?? fallbackTooltipPos;
   const arrowStyle = spotlight ? getArrowStyle(tp, spotlight) : undefined;
 
+  const DARK = "rgba(0,0,0,0.55)";
+  const TR = "all 0.28s ease";
+
   return (
     <>
-      {/* ── Dark overlay (pointer-events: none so target stays clickable) ── */}
-      <div
-        className="fixed inset-0"
-        style={{ zIndex: 9998, background: "rgba(0,0,0,0.50)", pointerEvents: "none", transition: "opacity 200ms" }}
-      />
-
-      {/* ── Spotlight highlight ─────────────────────────────────────────── */}
-      <AnimatePresence>
-        {spotlight && (
-          <motion.div
-            key={`spot-${step}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed",
-              top: spotlight.top,
-              left: spotlight.left,
-              width: spotlight.width,
-              height: spotlight.height,
-              zIndex: 9999,
-              pointerEvents: "none",
-              borderRadius: 10,
-              // Cut a hole by overlaying a transparent box, surrounded by shadow
-              boxShadow: [
-                "0 0 0 9999px rgba(0,0,0,0)",       // transparent center (no bg, cuts through overlay visually)
-                "0 0 0 2px rgba(0,122,255,0.55)",    // electric ring
-                "0 0 16px 4px rgba(0,122,255,0.18)", // glow
-              ].join(", "),
-              transition: "top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease",
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* ── 4 rectangles sombres autour de la cible — zone ciblée reste lumineuse ── */}
+      {spotlight ? (
+        <>
+          {/* Haut */}
+          <div style={{ position:"fixed", zIndex:9998, pointerEvents:"none", transition: TR,
+            top:0, left:0, right:0, height: spotlight.top, background: DARK }} />
+          {/* Bas */}
+          <div style={{ position:"fixed", zIndex:9998, pointerEvents:"none", transition: TR,
+            top: spotlight.top + spotlight.height, left:0, right:0, bottom:0, background: DARK }} />
+          {/* Gauche */}
+          <div style={{ position:"fixed", zIndex:9998, pointerEvents:"none", transition: TR,
+            top: spotlight.top, left:0, width: spotlight.left, height: spotlight.height, background: DARK }} />
+          {/* Droite */}
+          <div style={{ position:"fixed", zIndex:9998, pointerEvents:"none", transition: TR,
+            top: spotlight.top, left: spotlight.left + spotlight.width, right:0, height: spotlight.height, background: DARK }} />
+          {/* Ring electric autour de la cible */}
+          <div style={{ position:"fixed", zIndex:9999, pointerEvents:"none", transition: TR,
+            top: spotlight.top, left: spotlight.left, width: spotlight.width, height: spotlight.height,
+            borderRadius: 10,
+            border: "2px solid rgba(0,122,255,0.75)",
+            boxShadow: "0 0 0 3px rgba(0,122,255,0.18), 0 0 20px rgba(0,122,255,0.15)",
+          }} />
+        </>
+      ) : (
+        /* Pas encore d'élément trouvé : overlay simple */
+        <div style={{ position:"fixed", inset:0, zIndex:9998, pointerEvents:"none", background: DARK }} />
+      )}
 
       {/* ── Tooltip ─────────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
