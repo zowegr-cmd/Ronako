@@ -15,13 +15,13 @@ interface AnalysisContext {
 const SYSTEM_PROMPT = `Tu es Marcus, Chef d'Orchestre. L'utilisateur veut un livrable spécifique.
 Analyse et retourne UNIQUEMENT ce JSON (sans texte autour) :
 {
-  "tip": "Conseil en français (2-3 phrases). Structure : 1) Solution directe sans connecteur si elle existe (Markdown, HTML, Marp...) 2) Option connecteur payant si elle apporte une vraie valeur (meilleur rendu, automatisation, export direct). Sois honnête sur le coût et le gain.",
+  "tip": "Conseil en français (2-3 phrases). Structure : ✅ Meilleure solution d'abord — si un connecteur donne le vrai format demandé (vrai .xlsx, vrai .pptx, vraie image), mets-le en premier. Puis 💡 alternative sans connecteur. Sois direct : si le connecteur est clairement supérieur, ne bury pas cette info.",
   "suggestedSkills": ["skill-id-si-pertinent"],
-  "suggestedConnectors": ["connector-id-si-valeur-ajoutée-réelle"],
+  "suggestedConnectors": ["connector-id-si-meilleur-résultat"],
   "agentHint": "id-agent-le-plus-adapté",
   "blocking": false
 }
-Règle : propose toujours la solution simple en premier. Mentionne les connecteurs payants s'ils apportent un vrai gain (rendu professionnel, gain de temps, format natif). Ne bloque jamais — ce sont des options.`;
+Règle : priorité au meilleur résultat pour l'utilisateur. Un connecteur payant qui donne le vrai format > une solution gratuite approximative. Mentionne toujours les deux. Ne bloque jamais.`;
 
 function buildUserMessage(text: string, ctx: AnalysisContext): string {
   const skillList = ctx.availableSkills.length > 0
