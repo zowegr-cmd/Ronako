@@ -96,6 +96,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { generateId } from "@/lib/utils";
 import { useConnectorStore } from "@/store/connectorStore";
+import { useVisualStore } from "@/store/visualStore";
 
 export function useChainRunner(teamId: string) {
   const abortRef = useRef(false);
@@ -111,6 +112,7 @@ export function useChainRunner(teamId: string) {
   const { selectedFormats } = useChainStore();
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
   const { keys: allConnectorKeys, customConnectors, mcpStates } = useConnectorStore();
+  const { addVisual, setGenerating } = useVisualStore();
   const toast = useToastStore();
   const { stream, abort: abortStream } = useAnthropicStream();
   const { playChainStart, playChime } = useSounds();
@@ -312,6 +314,12 @@ export function useChainRunner(teamId: string) {
         setAgentIndex(i);
         const agent = agentsWithMode[i];
 
+        // Signal au visualStore si agent visuel
+        if (agent.id === "pixel") setGenerating(true, "image");
+        else if (agent.id === "motion") setGenerating(true, "video");
+        else if (agent.id === "voice") setGenerating(true, "audio");
+        else setGenerating(false, null);
+
         // ── Connecteurs de l'agent + définitions outils ───────────
         const explicitConnectors = agent.connectors ?? [];
 
@@ -483,6 +491,14 @@ export function useChainRunner(teamId: string) {
                     const { tool_name, is_error, metadata } = ev.payload;
                     // Dispatch event pour DeliverablePanel
                     document.dispatchEvent(new CustomEvent("tool-result", { detail: { tool_name, is_error, metadata } }));
+                    // Stocker dans visualStore si c'est un visuel
+                    if (!is_error && metadata) {
+                      const m = metadata as Record<string, unknown>;
+                      if (tool_name === "generate_image_dalle" || tool_name === "generate_image_flux") {
+                        const lp = String(m.local_path ?? "");
+                        if (lp) addVisual({ type: "image", local_path: lp, url: String(m.url ?? ""), model: String(m.model ?? tool_name), prompt: String(m.prompt ?? ""), cost_cents: Number(m.cost_cents ?? 0), agentId: agent.id });
+                      }
+                    }
                   });
                   unlisteners.push(unChunk, unDone, unErr, unToolUse, unToolResult);
 
@@ -647,6 +663,7 @@ export function useChainRunner(teamId: string) {
         if (abortRef.current) { stopRun(); return; }
       }
 
+      setGenerating(false, null);
       completeRun();
       playChime();
 

@@ -47,13 +47,16 @@ export function AppShell() {
     const goWorkspace = () => navigate("/workspace");
     const goSettings  = () => navigate("/settings");
     const goPacks     = () => navigate("/packs");
+    const goVisual    = () => navigate("/visual-studio");
     document.addEventListener("navigate-workspace", goWorkspace);
     document.addEventListener("open-settings-connectors", goSettings);
     document.addEventListener("navigate-packs", goPacks);
+    document.addEventListener("navigate-visual-studio", goVisual);
     return () => {
       document.removeEventListener("navigate-workspace", goWorkspace);
       document.removeEventListener("open-settings-connectors", goSettings);
       document.removeEventListener("navigate-packs", goPacks);
+      document.removeEventListener("navigate-visual-studio", goVisual);
     };
   }, [navigate]);
 

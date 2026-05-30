@@ -7,6 +7,7 @@ import { AgentStudio } from "@/screens/AgentStudio";
 import { Orchestrator } from "@/screens/Orchestrator";
 import { Settings } from "@/screens/Settings";
 import { PackManager } from "@/screens/PackManager";
+import { VisualStudio } from "@/screens/VisualStudio";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useConnectorStore } from "@/store/connectorStore";
 import { useAgentStore } from "@/store/agentStore";
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/orchestrator" element={<Orchestrator />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/packs" element={<PackManager />} />
+          <Route path="/visual-studio" element={<VisualStudio />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

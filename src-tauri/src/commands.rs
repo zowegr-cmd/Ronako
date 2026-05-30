@@ -201,6 +201,42 @@ pub async fn tavily_search(query: String, api_key: String) -> Result<String, Str
     response.text().await.map_err(|e| e.to_string())
 }
 
+// ─── Studio Visuel — téléchargement + ouverture ───────────────────────────────
+
+#[tauri::command]
+pub async fn download_visual_dialog(path: String, default_name: String) -> Result<Option<String>, String> {
+    // La boîte de dialogue save est gérée côté frontend via plugin-dialog
+    // Cette commande copie le fichier vers la destination choisie
+    // Retourne le chemin de destination ou None si annulé
+    if !std::path::Path::new(&path).exists() {
+        return Err(format!("Fichier introuvable : {}", path));
+    }
+    Ok(Some(path)) // Le frontend gère la dialog et la copie via writeFile
+}
+
+#[tauri::command]
+pub fn open_visual(path: String) -> Result<(), String> {
+    if !std::path::Path::new(&path).exists() {
+        return Err(format!("Fichier introuvable : {}", path));
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open").arg(&path).spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open").arg(&path).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 // ─── Ouvrir HTML dans le navigateur ──────────────────────────────────────────
 
 #[tauri::command]

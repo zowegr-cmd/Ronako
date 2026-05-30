@@ -85,6 +85,44 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
     agents: ["marcus","nina","tom","ella","ryo","sam"],
     mode: "flash",
   },
+  // ── Templates visuels ──────────────────────────────────────────────────────
+  {
+    id: "identite_visuelle",
+    name: "Identité Visuelle",
+    icon: "🎨",
+    description: "Logo, charte graphique et assets visuels IA",
+    keywords: ["logo", "identité visuelle", "charte graphique", "branding", "visual identity"],
+    agents: ["marcus", "omar", "axel", "pixel", "ryo", "sam"],
+    mode: "project",
+    briefGuide: ["Secteur d'activité ?", "Valeurs de la marque ?", "Couleurs préférées ?"],
+  },
+  {
+    id: "contenu_social",
+    name: "Contenu Social Media",
+    icon: "📱",
+    description: "Visuels et posts optimisés pour les réseaux",
+    keywords: ["social media", "instagram", "linkedin", "réseaux sociaux", "posts", "stories"],
+    agents: ["marcus", "leo", "axel", "pixel", "ryo", "sam"],
+    mode: "project",
+  },
+  {
+    id: "campagne_pub",
+    name: "Campagne Publicitaire",
+    icon: "📣",
+    description: "Visuels + voix off pour campagne complète",
+    keywords: ["campagne", "publicité", "ads", "spot", "publicitaire"],
+    agents: ["marcus", "omar", "leo", "axel", "pixel", "voice", "ryo", "sam"],
+    mode: "infinite",
+  },
+  {
+    id: "video_promo",
+    name: "Vidéo Promotionnelle",
+    icon: "🎬",
+    description: "Image + animation + narration audio complète",
+    keywords: ["vidéo", "video", "animation", "promo", "motion", "film"],
+    agents: ["marcus", "leo", "axel", "pixel", "motion", "voice", "ryo", "sam"],
+    mode: "infinite",
+  },
 ];
 
 // Détecter le template selon le brief de l'utilisateur

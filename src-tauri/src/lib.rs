@@ -35,6 +35,8 @@ pub fn run() {
             commands::tavily_search,
             commands::http_custom_call,
             commands::open_html_in_browser,
+            commands::download_visual_dialog,
+            commands::open_visual,
             // Bibliothèque livrables
             commands::save_deliverable,
             commands::list_deliverables,

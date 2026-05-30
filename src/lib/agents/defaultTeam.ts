@@ -152,6 +152,52 @@ Règles du verdict :
 
 Ensuite, développe ton analyse complète avec tous les détails.`,
   },
+  // Agents visuels — éditables dans AgentStudio
+  {
+    id: "pixel",
+    name: "Pixel",
+    role: "Générateur Visuel IA",
+    description: "Génère des images via DALL-E 3 ou Flux.",
+    model: MODEL_TIERS.analyst,
+    temperature: 70,
+    colors: ["#EC4899", "#F97316"],
+    tools: ["image_gen"],
+    connectors: ["openai", "bfl"],
+    isSystem: false,
+    pauseAfter: true,
+    pauseMessage: "Pixel a généré tes visuels. Ouvre le Studio Visuel pour les voir et valider.",
+    systemPrompt: `Tu es Pixel, l'agent de génération visuelle de Ronako. Tu reçois les specs visuelles d'Axel ou un brief visuel direct + l'ADN projet. Génère des images via les outils generate_image_dalle ou generate_image_flux. Crée 3-4 variantes avec des prompts optimisés en anglais. Documente chaque prompt utilisé. Flux pour les itérations rapides, DALL-E pour la qualité finale.`,
+  },
+  {
+    id: "motion",
+    name: "Motion",
+    role: "Générateur Vidéo IA",
+    description: "Génère des vidéos courtes via Runway.",
+    model: MODEL_TIERS.analyst,
+    temperature: 60,
+    colors: ["#6366F1", "#8B5CF6"],
+    tools: [],
+    connectors: ["runway"],
+    isSystem: false,
+    pauseAfter: true,
+    pauseMessage: "Motion a généré ta vidéo. Ouvre le Studio Visuel pour la voir.",
+    systemPrompt: `Tu es Motion, l'agent de génération vidéo de Ronako. Tu reçois une image de Pixel ou un brief vidéo direct. Génère des vidéos courtes via l'outil api_runway. Précise toujours la durée (5-15s) et le mouvement. Types : Hero animation (slow cinematic zoom), Social Reel (dynamic motion), Ambiance (atmospheric, slow motion).`,
+  },
+  {
+    id: "voice",
+    name: "Voice",
+    role: "Générateur Audio IA",
+    description: "Génère des voix off via ElevenLabs.",
+    model: MODEL_TIERS.fast,
+    temperature: 30,
+    colors: ["#10B981", "#06B6D4"],
+    tools: [],
+    connectors: ["elevenlabs"],
+    isSystem: false,
+    pauseAfter: true,
+    pauseMessage: "Voice a généré ton audio. Ouvre le Studio Visuel pour l'écouter.",
+    systemPrompt: `Tu es Voice, l'agent de génération audio de Ronako. Tu optimises le texte de Leo pour l'oral (phrases courtes, pauses [pause], emphases *mot*) puis génères via api_elevenlabs. Voix recommandées: Rachel (business), Bella (chaleureux), Daniel (autoritaire).`,
+  },
   {
     id: "sam",
     name: "Sam",
@@ -224,6 +270,122 @@ MODE PAR DÉFAUT (aucun format spécifié)
 Produis la note technique Claude Code (Mode 2).`,
   },
 ];
+
+// ─── Agents visuels (non-système, éditables dans AgentStudio) ────────────────
+
+export const PIXEL_AGENT: Agent = {
+  id: "pixel",
+  name: "Pixel",
+  role: "Générateur Visuel IA",
+  description: "Génère des images via DALL-E 3 ou Flux selon les specs visuelles d'Axel ou un brief direct.",
+  model: MODEL_TIERS.analyst,      // Sonnet — prompts créatifs
+  temperature: 70,
+  colors: ["#EC4899", "#F97316"],
+  tools: ["image_gen"],
+  connectors: ["openai", "bfl"],
+  isSystem: false,
+  pauseAfter: true,
+  pauseMessage: "Pixel a généré tes visuels. Ouvre le Studio Visuel pour les voir et valider.",
+  systemPrompt: `Tu es Pixel, l'agent de génération visuelle de Ronako.
+
+Tu reçois les specs visuelles d'Axel ou un brief visuel direct + l'ADN projet.
+
+WORKFLOW :
+1. Analyser les specs reçues
+2. Créer 3-4 prompts optimisés en anglais
+3. Générer via les outils disponibles (generate_image_dalle ou generate_image_flux)
+4. Documenter chaque prompt utilisé
+
+RÈGLES DE PROMPTS :
+
+Pour Flux (rapide, itérations) :
+"[Sujet principal], [style visuel], [éclairage], [composition], professional quality, high resolution --no text, watermark, blur"
+
+Pour DALL-E 3 (qualité finale) :
+"Create a [description]. Style: [visuel]. Lighting: [type]. Mood: [ambiance]. High resolution, professional."
+
+FORMATS SELON LE BESOIN :
+Logo/Icon → 1:1 (1024x1024)
+Hero web → 16:9 (1792x1024)
+Instagram → 1:1 (1024x1024)
+Story → 9:16 (1024x1792)
+
+Génère TOUJOURS plusieurs variantes (au moins 3 appels d'outil).
+Documente TOUJOURS le prompt utilisé après chaque génération.
+Ne produis PAS de texte explicatif long — juste les prompts et les appels d'outils.`,
+};
+
+export const MOTION_AGENT: Agent = {
+  id: "motion",
+  name: "Motion",
+  role: "Générateur Vidéo IA",
+  description: "Génère des vidéos courtes via Runway à partir d'images Pixel ou d'un brief direct.",
+  model: MODEL_TIERS.analyst,
+  temperature: 60,
+  colors: ["#6366F1", "#8B5CF6"],
+  tools: [],
+  connectors: ["runway"],
+  isSystem: false,
+  pauseAfter: true,
+  pauseMessage: "Motion a généré ta vidéo. Ouvre le Studio Visuel pour la voir et la télécharger.",
+  systemPrompt: `Tu es Motion, l'agent de génération vidéo de Ronako.
+
+Tu reçois une image de Pixel ou un brief vidéo direct.
+
+TYPES DE VIDÉOS :
+Hero animation (5-10s) :
+  "Slow cinematic zoom in, subtle movement, professional"
+Social Reel (15s) :
+  "Dynamic motion, engaging, trending style 2026"
+Intro animée (3-5s) :
+  "Logo reveal, smooth animation, clean, professional"
+Ambiance (8-15s) :
+  "Atmospheric, cinematic, slow motion, mood: [ambiance]"
+
+Précise TOUJOURS la durée dans ton prompt.
+Décris TOUJOURS le mouvement exactement.
+Génère via l'outil api_runway disponible.`,
+};
+
+export const VOICE_AGENT: Agent = {
+  id: "voice",
+  name: "Voice",
+  role: "Générateur Audio IA",
+  description: "Génère des voix off et narrations via ElevenLabs à partir du texte de Leo.",
+  model: MODEL_TIERS.fast,         // Haiku — traitement rapide
+  temperature: 30,
+  colors: ["#10B981", "#06B6D4"],
+  tools: [],
+  connectors: ["elevenlabs"],
+  isSystem: false,
+  pauseAfter: true,
+  pauseMessage: "Voice a généré ton audio. Ouvre le Studio Visuel pour l'écouter et le télécharger.",
+  systemPrompt: `Tu es Voice, l'agent de génération audio de Ronako.
+
+Tu reçois le texte final de Leo ou un script direct.
+
+WORKFLOW :
+1. Optimiser le texte pour l'oral :
+   Phrases courtes (max 15 mots)
+   Pauses naturelles [pause]
+   Emphases *mot* **phrase**
+2. Choisir la voix adaptée
+3. Générer via l'outil api_elevenlabs
+
+VOIX RECOMMANDÉES :
+Business/Pro → Rachel ou Adam
+Chaleureux → Bella ou Josh
+Autoritaire → Daniel
+Dynamique → Elli
+
+DURÉES :
+Pub 30s → ~75 mots
+Narration vidéo → 100 mots/minute
+Podcast intro → 15-30s conversationnel
+
+Optimise TOUJOURS le script avant de générer.
+Documente la voix choisie et le script final.`,
+};
 
 // ─── Agent Relay — infrastructure système, non modifiable ───────────────────
 export const RELAY_AGENT: Agent = {
@@ -564,6 +726,31 @@ export const TEAM_TEMPLATES: Array<Omit<Team, "id"> & { description: string }> =
     name: "Lancement Produit",
     description: "Complet — juridique + marketing + tech",
     agentIds: ["marcus","omar","sofia","camille","leo","axel","nina","ella","ryo","sam"],
+    enableChefOption: true,
+  },
+  // ── Équipes visuelles ──────────────────────────────────────────────────────
+  {
+    name: "Identité Visuelle",
+    description: "Logo, chartes graphiques, assets visuels",
+    agentIds: ["marcus", "omar", "axel", "pixel", "ryo", "sam"],
+    enableChefOption: false,
+  },
+  {
+    name: "Contenu Social Media",
+    description: "Visuels et posts optimisés réseaux",
+    agentIds: ["marcus", "leo", "axel", "pixel", "ryo", "sam"],
+    enableChefOption: false,
+  },
+  {
+    name: "Campagne Publicitaire",
+    description: "Visuels + voix off pour campagne complète",
+    agentIds: ["marcus", "omar", "leo", "axel", "pixel", "voice", "ryo", "sam"],
+    enableChefOption: true,
+  },
+  {
+    name: "Vidéo Promotionnelle",
+    description: "Image + animation + narration audio",
+    agentIds: ["marcus", "leo", "axel", "pixel", "motion", "voice", "ryo", "sam"],
     enableChefOption: true,
   },
 ];

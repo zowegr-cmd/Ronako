@@ -170,6 +170,148 @@ export const SKILL_PACKS: SkillPack[] = [
   },
 ];
 
+// ─── Pack Création Visuelle ───────────────────────────────────────────────────
+
+export const VISUAL_CREATION_PACK: SkillPack = {
+  id: "visual_creation",
+  name: "Création Visuelle",
+  icon: "🎨",
+  description: "Prompt engineering visuel, direction artistique, storytelling vidéo et optimisation audio.",
+  sector: "visual",
+  skills: [
+    {
+      id: "visual-prompt-engineering",
+      name: "Prompt Engineering Visuel",
+      description: "Structure de prompts optimisés pour DALL-E 3, Flux et Ideogram.",
+      agentIds: ["pixel", "axel"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["image", "visuel", "logo", "illustration", "photo"],
+      createdBy: "system",
+      content: `SKILL PROMPT ENGINEERING VISUEL :
+
+STRUCTURE D'UN BON PROMPT IMAGE :
+[Sujet principal] + [Style visuel] + [Éclairage] + [Composition] + [Rendu technique] + [Négatifs --no]
+
+EXEMPLES PAR CAS D'USAGE :
+
+Photo produit e-commerce :
+"Professional product photography, white background, studio lighting, sharp focus, commercial style --no text, watermark, blur"
+
+Visuel réseaux sociaux :
+"Modern social media graphic, [couleurs marque], minimalist, trendy 2026 aesthetic --no cluttered, text overlay"
+
+Logo/Icône :
+"Minimalist logo design, [domaine], [couleurs], vector style, clean, white background --no complex details, shadows"
+
+Hero web :
+"Wide cinematic shot, [scène], [ambiance], professional photography, 16:9, suitable for website hero --no text, watermarks"
+
+Illustration business :
+"Flat design illustration, [concept], modern business style, [couleurs], clean lines, corporate presentation --no photorealistic"
+
+CHOISIR LE MODÈLE :
+Flux Pro ($0.003, ~3s) → itérations rapides, tests
+DALL-E 3 ($0.04) → qualité finale, livrable`,
+    },
+    {
+      id: "visual-art-direction",
+      name: "Direction Artistique Cohérente",
+      description: "Maintenir la cohérence visuelle entre tous les visuels d'un projet.",
+      agentIds: ["pixel", "axel"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["charte", "branding", "cohérence", "identité visuelle"],
+      createdBy: "system",
+      content: `SKILL DIRECTION ARTISTIQUE :
+
+EXTRAIRE DU BRIEF :
+Palette (2-3 couleurs max)
+Style dominant :
+  Minimaliste → espace blanc, épuré
+  Luxe → noir, or, élégant
+  Tech → bleu, gris, lignes nettes
+  Naturel → vert, organique
+  Dynamique → couleurs vives
+
+COHÉRENCE ENTRE VISUELS :
+Même palette dans tous les prompts
+Même style visuel décrit
+Même éclairage
+Même mood général
+
+ADAPTER PAR PLATEFORME :
+Site web → 16:9 (1792x1024), professionnel, épuré
+Instagram → 1:1 (1024x1024), coloré, impactant
+LinkedIn → sobre, professionnel
+Story → 9:16 (1024x1792), texte lisible, vertical`,
+    },
+    {
+      id: "visual-audio-text",
+      name: "Optimisation Texte Audio",
+      description: "Adapter le texte écrit pour une narration naturelle et percutante.",
+      agentIds: ["voice", "leo"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["audio", "voix", "narration", "podcast", "publicité radio"],
+      createdBy: "system",
+      content: `SKILL TEXTE POUR AUDIO :
+
+RÈGLES D'ADAPTATION :
+Phrases courtes (max 15 mots)
+Chiffres en toutes lettres
+Pas de listes → phrases avec connecteurs
+
+MARQUEURS DE PAUSE/EMPHASE :
+[pause court] → 0.5 seconde
+[pause] → 1 seconde
+[pause long] → 2 secondes
+*mot* → emphase légère
+**phrase** → emphase forte
+
+DURÉES CIBLES :
+Pub 30s → ~75 mots
+Narration → 100 mots/minute
+Podcast intro → 15-30s
+
+EXEMPLE DE TRANSFORMATION :
+AVANT : "Notre solution innovante optimise les processus."
+APRÈS : "Gérer un cabinet... [pause] c'est chronophage. *Notre solution* change ça. [pause] Radicalement."`,
+    },
+    {
+      id: "visual-video-storytelling",
+      name: "Storytelling Vidéo Court",
+      description: "Structure narrative pour vidéos courtes efficaces (5s à 30s).",
+      agentIds: ["motion", "leo"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["vidéo", "animation", "reel", "motion", "story"],
+      createdBy: "system",
+      content: `SKILL STORYTELLING VIDÉO :
+
+STRUCTURE NARRATIVE :
+5s → Hook uniquement
+10-15s → Problème (2s) + Solution (6s) + CTA (4s)
+30s → Hook (3s) + Problème (7s) + Solution (10s) + Résultat (7s) + CTA (3s)
+
+MOUVEMENTS SELON L'ÉMOTION :
+Confiance → slow zoom in, stable
+Dynamisme → fast cut, rapide
+Luxe → slow motion, tracking shot
+Proximité → handheld, naturel
+
+PROMPTS VALIDÉS :
+Hero : "Slow cinematic zoom, subtle movement, professional, 8s"
+Produit : "Smooth 360 rotation, studio lighting, elegant, 6s"
+Social : "Dynamic zoom transitions, trending 2026, energetic, 15s"`,
+    },
+  ],
+};
+
 // ─── Pack Production Forge ────────────────────────────────────────────────────
 
 export const FORGE_PRODUCTION_PACK: SkillPack = {

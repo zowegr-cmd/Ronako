@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, FileText, Code2, Check, Download, ChevronDown, ChevronUp, RefreshCw, Terminal, Image, FolderOpen } from "lucide-react";
+import { Copy, FileText, Code2, Check, Download, ChevronDown, ChevronUp, RefreshCw, Terminal, Image, FolderOpen, Sparkles } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
@@ -18,6 +18,7 @@ import { AgentAvatar } from "@/components/agents/AgentAvatar";
 import { MarkdownMessage } from "@/components/ui/MarkdownMessage";
 import { formatCost, formatTokens } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useVisualStore } from "@/store/visualStore";
 
 type PanelView = "outputs" | "stats" | "presentation" | "visuals" | "files";
 
@@ -455,38 +456,8 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
         </div>
       )}
 
-      {/* ── Onglet Visuels (Phase 8A) ────────────────────────────── */}
-      {view === "visuals" && (
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
-          {visuals.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-silk/30 text-xs">Aucun visuel généré</div>
-          ) : visuals.map((v) => (
-            <div key={v.id} className="bg-graphite-light border border-crystal rounded-xl overflow-hidden">
-              <img
-                src={convertFileSrc(v.local_path)}
-                alt={v.prompt}
-                className="w-full object-cover"
-                style={{ maxHeight: 200 }}
-                onError={(e) => {
-                  // Fallback sur l'URL distante si le chemin local ne fonctionne pas
-                  if (v.url) (e.target as HTMLImageElement).src = v.url;
-                }}
-              />
-              <div className="px-3 py-2">
-                <p className="text-[10px] text-silk/50 leading-relaxed">{v.prompt}</p>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[9px] text-silk/25">{v.model} · ~€{(v.cost_cents / 100).toFixed(3)}</span>
-                  <button
-                    onClick={() => downloadFile(v.local_path, `image-${v.id}.png`)}
-                    className="flex items-center gap-1 text-[10px] text-electric/60 hover:text-electric transition-colors">
-                    <Download size={10} /> Télécharger
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* ── Onglet Visuels — version compacte + lien Studio ─────────── */}
+      {view === "visuals" && <VisualsCompactTab />}
 
       {/* ── Onglet Fichiers (Phase 8B) ────────────────────────────── */}
       {view === "files" && (
@@ -538,6 +509,62 @@ ${completedMessages.map((m) => { const a = m.agentId ? getAgent(m.agentId) : nul
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VisualsCompactTab() {
+  const { visuals, isGenerating } = useVisualStore();
+  const images = visuals.filter((v) => v.type === "image");
+  const videos = visuals.filter((v) => v.type === "video");
+  const audios = visuals.filter((v) => v.type === "audio");
+  const totalCount = visuals.length;
+
+  if (totalCount === 0 && !isGenerating) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 p-4 text-center">
+        <span className="text-2xl">🎨</span>
+        <p className="text-xs text-silk/30">Ajoute Pixel, Motion ou Voice dans ta chaîne pour générer des visuels.</p>
+        <button onClick={() => document.dispatchEvent(new CustomEvent("navigate-visual-studio"))}
+          className="text-[10px] text-electric/60 hover:text-electric mt-1 flex items-center gap-1">
+          <Sparkles size={10} /> Ouvrir Studio Visuel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-h-0">
+      {isGenerating && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-electric/5 border border-electric/20 rounded-xl">
+          <motion.div className="w-3 h-3 rounded-full border border-electric/50 border-t-electric"
+            animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} />
+          <span className="text-[10px] text-electric/60">Pixel génère des visuels…</span>
+        </div>
+      )}
+
+      {/* Thumbnails compacts */}
+      {images.length > 0 && (
+        <div>
+          <p className="text-[9px] text-silk/30 uppercase tracking-widest mb-1.5">🖼️ Images ({images.length})</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {images.slice(0, 4).map((v) => (
+              <div key={v.id} className="w-14 h-14 rounded-lg overflow-hidden border border-crystal/50 bg-graphite">
+                <img src={convertFileSrc(v.local_path)} alt="" className="w-full h-full object-cover"
+                  onError={(e) => { if (v.url) (e.target as HTMLImageElement).src = v.url; }} />
+              </div>
+            ))}
+            {images.length > 4 && <div className="w-14 h-14 rounded-lg border border-crystal/50 bg-graphite flex items-center justify-center text-[10px] text-silk/30">+{images.length - 4}</div>}
+          </div>
+        </div>
+      )}
+      {videos.length > 0 && <p className="text-[9px] text-silk/40">🎬 {videos.length} vidéo{videos.length > 1 ? "s" : ""}</p>}
+      {audios.length > 0 && <p className="text-[9px] text-silk/40">🔊 {audios.length} audio{audios.length > 1 ? "s" : ""}</p>}
+
+      <button onClick={() => document.dispatchEvent(new CustomEvent("navigate-visual-studio"))}
+        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-electric/30 bg-electric/5 text-[11px] font-medium text-electric/80 hover:bg-electric/10 transition-all mt-auto">
+        <Sparkles size={12} /> Ouvrir le Studio Visuel →
+      </button>
     </div>
   );
 }
