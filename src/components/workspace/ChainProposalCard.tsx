@@ -28,6 +28,7 @@ import { CHAIN_MODES, getDefaultAgentsForMode, type ChainMode } from "@/lib/chai
 import { estimateChainCost, formatCentsEstimate } from "@/lib/costEstimator";
 import { AGENT_DELIVERABLE_DESCRIPTIONS, DELIVERABLE_FORMATS } from "@/lib/formatSelector";
 import { FORMAT_REQUIREMENTS } from "@/lib/formatRequirements";
+import { analyzeCustomDeliverable, type CustomDeliverableInsight } from "@/lib/customDeliverableAnalyzer";
 import type { ChainProposal, ProposedAgent, Agent, OptimizerSuggestion } from "@/types";
 import type { ConnectorKeys } from "@/store/settingsStore";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
   const [showSkillsPanel, setShowSkillsPanel] = useState(false);
   const [tempSkillIds, setTempSkillIds] = useState<string[]>([]);
   const [customDeliverableNote, setCustomDeliverableNote] = useState("");
+  const [customInsight, setCustomInsight] = useState<CustomDeliverableInsight | null>(null);
   const [formatAlerts, setFormatAlerts] = useState<FormatAlert[]>([]);
 
   const { skills: allSkills, setTemporarySkills, toggleSkill } = useAgentStore();
@@ -85,6 +87,15 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
     setSelectedFormats(hasFolder ? ["prompt_cc"] : ["markdown"]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Analyse temps-réel du champ livrable custom (debounce 350ms)
+  useEffect(() => {
+    if (!customDeliverableNote.trim()) { setCustomInsight(null); return; }
+    const t = setTimeout(() => {
+      setCustomInsight(analyzeCustomDeliverable(customDeliverableNote));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [customDeliverableNote]);
 
   const onFormatToggle = (fmtId: string) => {
     const isSelected = selectedFormats.includes(fmtId);
@@ -475,8 +486,8 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
       <div className="px-4 py-2.5 border-b border-crystal/20">
         <div className="flex items-center gap-1.5 mb-2">
           <p className="text-[10px] text-silk/30 uppercase tracking-widest">Livrables souhaités</p>
-          {selectedFormats.length === 0 && (
-            <span className="text-[10px] text-warning/70 font-medium">— Sélectionne au moins un format</span>
+          {selectedFormats.length === 0 && !customDeliverableNote.trim() && (
+            <span className="text-[10px] text-warning/70 font-medium">— Sélectionne ou décris au moins un livrable</span>
           )}
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -544,15 +555,65 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
           ))}
         </AnimatePresence>
 
-        {/* Livrable personnalisé */}
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-silk/25 text-[11px] shrink-0">+ autre :</span>
-          <input
-            value={customDeliverableNote}
-            onChange={(e) => setCustomDeliverableNote(e.target.value)}
-            placeholder="ex. script vidéo YouTube, cahier des charges Word…"
-            className="flex-1 bg-graphite-light border border-crystal/60 rounded-lg px-2.5 py-1 text-[11px] text-silk/70 placeholder-silk/20 focus:outline-none focus:border-electric/40 transition-colors"
-          />
+        {/* Livrable personnalisé + analyse temps réel */}
+        <div className="flex flex-col gap-1.5 mt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-silk/25 text-[11px] shrink-0">+ autre :</span>
+            <input
+              value={customDeliverableNote}
+              onChange={(e) => setCustomDeliverableNote(e.target.value)}
+              placeholder="Excel, PDF, logo, vidéo YouTube…"
+              className={cn(
+                "flex-1 bg-graphite-light border rounded-lg px-2.5 py-1 text-[11px] text-silk/70 placeholder-silk/20 focus:outline-none transition-colors",
+                customInsight?.blocking
+                  ? "border-warning/50 focus:border-warning/70"
+                  : customInsight
+                    ? "border-electric/40 focus:border-electric/60"
+                    : "border-crystal/60 focus:border-electric/40",
+              )}
+            />
+          </div>
+
+          {/* Insight en temps réel */}
+          <AnimatePresence>
+            {customInsight && customDeliverableNote.trim() && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                className={cn(
+                  "rounded-xl border px-3 py-2 text-[11px]",
+                  customInsight.blocking
+                    ? "bg-warning/8 border-warning/25 text-warning/80"
+                    : "bg-electric/5 border-electric/20 text-silk/60",
+                )}>
+                <p className="leading-relaxed mb-1.5">{customInsight.message}</p>
+                {customInsight.agentHint && (
+                  <p className="text-[10px] text-silk/30 mb-1">Agent : {customInsight.agentHint}</p>
+                )}
+                <div className="flex gap-2 flex-wrap">
+                  {customInsight.blocking && customInsight.connectorIds && (
+                    <button onClick={() => document.dispatchEvent(new Event("open-settings-connectors"))}
+                      className="text-[10px] font-medium text-warning/80 hover:text-warning border border-warning/30 rounded-lg px-2 py-0.5 transition-all">
+                      Configurer →
+                    </button>
+                  )}
+                  {!customInsight.blocking && customInsight.skillIds?.map((sid) => {
+                    const skill = allSkills.find((s) => s.id === sid);
+                    return skill ? (
+                      <button key={sid}
+                        onClick={() => { toggleSkill(skill.id); setCustomInsight(null); }}
+                        className="text-[10px] font-medium text-electric/80 hover:text-electric border border-electric/30 rounded-lg px-2 py-0.5 transition-all">
+                        Activer {skill.name} ⏱
+                      </button>
+                    ) : null;
+                  })}
+                  <button onClick={() => setCustomInsight(null)}
+                    className="text-[10px] text-silk/25 hover:text-silk/50 transition-colors">
+                    Ignorer
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -765,7 +826,7 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
           size="sm"
           onClick={handleConfirm}
           loading={loading}
-          disabled={selectedAgents.length === 0 || loading || optimizing || selectedFormats.length === 0}
+          disabled={selectedAgents.length === 0 || loading || optimizing || (selectedFormats.length === 0 && !customDeliverableNote.trim())}
           className="flex-1"
         >
           <Zap size={12} />
