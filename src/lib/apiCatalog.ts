@@ -1,6 +1,6 @@
-﻿// Catalogue complet des APIs disponibles dans Ronako.
-// hasToolDef = cÃ¢blÃ© dans la boucle tool use (Phase 8).
-// keyField = nom de la clÃ© dans le keyring OS.
+// Catalogue complet des APIs disponibles dans Ronako.
+// hasToolDef = câblé dans la boucle tool use (toutes via generic_api.rs ou implémentation dédiée).
+// keyField = nom de la clé dans le keyring OS.
 
 export interface ApiEntry {
   id: string;
@@ -24,22 +24,22 @@ export type ApiCategory =
   | "analytics";
 
 export const CATEGORY_META: Record<ApiCategory, { label: string; icon: string; color: string }> = {
-  generation:   { label: "GÃ©nÃ©ration IA",   icon: "ðŸŽ¨", color: "text-pink-400" },
-  search:       { label: "Recherche & Data", icon: "ðŸ”", color: "text-blue-400" },
-  productivity: { label: "ProductivitÃ©",     icon: "ðŸ’¼", color: "text-purple-400" },
-  dev:          { label: "Dev & Code",       icon: "ðŸ’»", color: "text-emerald-400" },
-  communication:{ label: "Communication",    icon: "ðŸ“§", color: "text-yellow-400" },
-  business:     { label: "Business & CRM",   icon: "ðŸ’³", color: "text-orange-400" },
-  analytics:    { label: "Analytics",        icon: "ðŸ“Š", color: "text-cyan-400" },
+  generation:    { label: "Génération IA",    icon: "🎨", color: "text-pink-400" },
+  search:        { label: "Recherche & Data",  icon: "🔍", color: "text-blue-400" },
+  productivity:  { label: "Productivité",      icon: "💼", color: "text-purple-400" },
+  dev:           { label: "Dev & Code",        icon: "💻", color: "text-emerald-400" },
+  communication: { label: "Communication",     icon: "📧", color: "text-yellow-400" },
+  business:      { label: "Business & CRM",    icon: "💳", color: "text-orange-400" },
+  analytics:     { label: "Analytics",         icon: "📊", color: "text-cyan-400" },
 };
 
 export const API_CATALOG: ApiEntry[] = [
-  // â”€â”€ GÃ©nÃ©ration IA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Génération IA ────────────────────────────────────────────────────────
   {
     id: "openai",
     name: "DALL-E 3",
-    description: "GÃ©nÃ©ration d'images haute qualitÃ© par OpenAI. IdÃ©al pour illustrations, logos, visuels marketing.",
-    icon: "ðŸŽ¨",
+    description: "Génération d'images haute qualité par OpenAI. Idéal pour illustrations, logos, visuels marketing.",
+    icon: "🎨",
     category: "generation",
     pricing: "$0.04/image",
     keyField: "openai",
@@ -49,8 +49,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "bfl",
     name: "Flux Pro (BFL)",
-    description: "GÃ©nÃ©ration d'images rÃ©alistes par Black Forest Labs. Plus rapide et moins cher que DALL-E.",
-    icon: "âš¡",
+    description: "Génération d'images réalistes par Black Forest Labs. Plus rapide et moins cher que DALL-E.",
+    icon: "⚡",
     category: "generation",
     pricing: "$0.003/image",
     keyField: "bfl",
@@ -60,8 +60,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "replicate",
     name: "Replicate",
-    description: "AccÃ¨s Ã  des centaines de modÃ¨les IA (Stable Diffusion, Llama, Whisper, etc.).",
-    icon: "ðŸ”„",
+    description: "Accès à des centaines de modèles IA (Stable Diffusion, Llama, Whisper, etc.).",
+    icon: "🔄",
     category: "generation",
     pricing: "variable",
     keyField: "replicate",
@@ -71,8 +71,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "elevenlabs",
     name: "ElevenLabs",
-    description: "SynthÃ¨se vocale rÃ©aliste. GÃ©nÃ¨re des voix pour podcasts, vidÃ©os, prÃ©sentations.",
-    icon: "ðŸŽ™ï¸",
+    description: "Synthèse vocale réaliste. Génère des voix pour podcasts, vidéos, présentations.",
+    icon: "🎙️",
     category: "generation",
     pricing: "$0.18/1k chars",
     keyField: "elevenlabs",
@@ -82,8 +82,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "runway",
     name: "Runway",
-    description: "GÃ©nÃ©ration et Ã©dition vidÃ©o par IA. IdÃ©al pour shorts, publicitÃ©s, teasers.",
-    icon: "ðŸŽ¬",
+    description: "Génération et édition vidéo par IA. Idéal pour shorts, publicités, teasers.",
+    icon: "🎬",
     category: "generation",
     pricing: "$0.05/sec",
     keyField: "runway",
@@ -93,8 +93,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "stability",
     name: "Stability AI",
-    description: "Stable Diffusion et modÃ¨les de gÃ©nÃ©ration d'images variÃ©s.",
-    icon: "ðŸŒŠ",
+    description: "Stable Diffusion et modèles de génération d'images variés.",
+    icon: "🌊",
     category: "generation",
     pricing: "$0.002/image",
     keyField: "stability",
@@ -102,12 +102,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ Recherche & Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Recherche & Data ─────────────────────────────────────────────────────
   {
     id: "tavily",
     name: "Tavily Search",
-    description: "Recherche web optimisÃ©e pour les LLMs. RÃ©sultats structurÃ©s avec rÃ©sumÃ©s.",
-    icon: "ðŸ”",
+    description: "Recherche web optimisée pour les LLMs. Résultats structurés avec résumés.",
+    icon: "🔍",
     category: "search",
     pricing: "$0.001/req",
     keyField: "tavily",
@@ -118,7 +118,7 @@ export const API_CATALOG: ApiEntry[] = [
     id: "brave",
     name: "Brave Search",
     description: "Recherche web sans tracking. API gratuite (up to 2000 req/mois).",
-    icon: "ðŸ¦",
+    icon: "🦁",
     category: "search",
     pricing: "Gratuit / $3/1k",
     keyField: "brave",
@@ -128,8 +128,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "serper",
     name: "Serper.dev",
-    description: "API Google Search. RÃ©sultats Google en temps rÃ©el pour n'importe quelle requÃªte.",
-    icon: "ðŸ”Ž",
+    description: "API Google Search. Résultats Google en temps réel pour n'importe quelle requête.",
+    icon: "🔎",
     category: "search",
     pricing: "$0.001/req",
     keyField: "serper",
@@ -139,8 +139,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "firecrawl",
     name: "Firecrawl",
-    description: "Scraping web avancÃ© â€” convertit n'importe quelle page en Markdown propre pour LLMs.",
-    icon: "ðŸ”¥",
+    description: "Scraping web avancé — convertit n'importe quelle page en Markdown propre pour LLMs.",
+    icon: "🔥",
     category: "search",
     pricing: "$0.001/page",
     keyField: "firecrawl",
@@ -151,7 +151,7 @@ export const API_CATALOG: ApiEntry[] = [
     id: "screenshot",
     name: "ScreenshotOne",
     description: "Capture de sites web pour analyse visuelle par les agents.",
-    icon: "ðŸ“¸",
+    icon: "📸",
     category: "search",
     pricing: "$0.002/capture",
     keyField: "screenshot",
@@ -161,8 +161,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "apify",
     name: "Apify",
-    description: "Automatisation web et scraping Ã  grande Ã©chelle. Marketplace d'actors.",
-    icon: "ðŸ•·ï¸",
+    description: "Automatisation web et scraping à grande échelle. Marketplace d'actors.",
+    icon: "🕷️",
     category: "search",
     pricing: "$5/mois+",
     keyField: "apify",
@@ -170,12 +170,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ ProductivitÃ© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Productivité ─────────────────────────────────────────────────────────
   {
     id: "notion",
     name: "Notion",
-    description: "Exporte les livrables directement dans Notion. CrÃ©e pages, databases, docs.",
-    icon: "ðŸ““",
+    description: "Exporte les livrables directement dans Notion. Crée pages, databases, docs.",
+    icon: "📓",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "notion",
@@ -185,8 +185,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "airtable",
     name: "Airtable",
-    description: "Base de donnÃ©es flexible. Les agents peuvent crÃ©er des enregistrements et lire des donnÃ©es.",
-    icon: "ðŸ—‚ï¸",
+    description: "Base de données flexible. Les agents peuvent créer des enregistrements et lire des données.",
+    icon: "🗂️",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "airtable",
@@ -196,8 +196,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "googlesheets",
     name: "Google Sheets",
-    description: "Lecture et Ã©criture de tableurs Google. IdÃ©al pour exports de donnÃ©es structurÃ©es.",
-    icon: "ðŸ“Š",
+    description: "Lecture et écriture de tableurs Google. Idéal pour exports de données structurées.",
+    icon: "📊",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "googlesheets",
@@ -207,8 +207,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "slack",
     name: "Slack",
-    description: "Envoie des messages, crÃ©e des posts dans des canaux Slack directement.",
-    icon: "ðŸ’¬",
+    description: "Envoie des messages, crée des posts dans des canaux Slack directement.",
+    icon: "💬",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "slack",
@@ -218,8 +218,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "linear",
     name: "Linear",
-    description: "CrÃ©e des issues, mets Ã  jour le roadmap depuis les livrables Ronako.",
-    icon: "ðŸ“",
+    description: "Crée des issues, mets à jour le roadmap depuis les livrables Ronako.",
+    icon: "📐",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "linear",
@@ -229,8 +229,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "jira",
     name: "Jira",
-    description: "CrÃ©e et met Ã  jour des tickets Jira depuis les plans d'action gÃ©nÃ©rÃ©s.",
-    icon: "ðŸŽ¯",
+    description: "Crée et met à jour des tickets Jira depuis les plans d'action générés.",
+    icon: "🎯",
     category: "productivity",
     pricing: "Gratuit*",
     keyField: "jira",
@@ -238,12 +238,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ Dev & Code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dev & Code ───────────────────────────────────────────────────────────
   {
     id: "github",
     name: "GitHub",
-    description: "CrÃ©e des commits, ouvre des PRs, lit des repos depuis les agents.",
-    icon: "ðŸ™",
+    description: "Crée des commits, ouvre des PRs, lit des repos depuis les agents.",
+    icon: "🐙",
     category: "dev",
     pricing: "Gratuit*",
     keyField: "github",
@@ -253,8 +253,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "e2b",
     name: "E2B Sandbox",
-    description: "ExÃ©cution de code Python/Node sÃ©curisÃ©e. GÃ©nÃ¨re de vrais fichiers (.xlsx, .pdf, .pptx).",
-    icon: "ðŸ–¥ï¸",
+    description: "Exécution de code Python/Node sécurisée. Génère de vrais fichiers (.xlsx, .pdf, .pptx).",
+    icon: "🖥️",
     category: "dev",
     pricing: "$0.10/heure",
     keyField: "e2b",
@@ -265,7 +265,7 @@ export const API_CATALOG: ApiEntry[] = [
     id: "gitlab",
     name: "GitLab",
     description: "Alternative GitHub. Push, MRs, pipelines CI/CD depuis les agents.",
-    icon: "ðŸ¦Š",
+    icon: "🦊",
     category: "dev",
     pricing: "Gratuit*",
     keyField: "gitlab",
@@ -275,8 +275,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "vercel",
     name: "Vercel",
-    description: "DÃ©clenche des dÃ©ploiements, gÃ¨re les domaines et variables d'environnement.",
-    icon: "â–²",
+    description: "Déclenche des déploiements, gère les domaines et variables d'environnement.",
+    icon: "▲",
     category: "dev",
     pricing: "Gratuit*",
     keyField: "vercel",
@@ -286,8 +286,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "supabase",
     name: "Supabase",
-    description: "BDD PostgreSQL + auth + storage. Lit et Ã©crit des donnÃ©es depuis les agents.",
-    icon: "âš¡",
+    description: "BDD PostgreSQL + auth + storage. Lit et écrit des données depuis les agents.",
+    icon: "⚡",
     category: "dev",
     pricing: "Gratuit*",
     keyField: "supabase",
@@ -295,12 +295,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ Communication â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Communication ────────────────────────────────────────────────────────
   {
     id: "sendgrid",
     name: "SendGrid",
-    description: "Envoie des emails transactionnels. Les sÃ©quences gÃ©nÃ©rÃ©es par Leo partent directement.",
-    icon: "ðŸ“§",
+    description: "Envoie des emails transactionnels. Les séquences générées par Leo partent directement.",
+    icon: "📧",
     category: "communication",
     pricing: "$0.001/email",
     keyField: "sendgrid",
@@ -310,8 +310,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "resend",
     name: "Resend",
-    description: "API email moderne pour devs. Gratuit jusqu'Ã  3000 emails/mois.",
-    icon: "âœ‰ï¸",
+    description: "API email moderne pour devs. Gratuit jusqu'à 3000 emails/mois.",
+    icon: "✉️",
     category: "communication",
     pricing: "Gratuit / $20/mois",
     keyField: "resend",
@@ -321,8 +321,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "mailchimp",
     name: "Mailchimp",
-    description: "CrÃ©e et envoie des campagnes email. GÃ¨re les listes de contacts.",
-    icon: "ðŸ’",
+    description: "Crée et envoie des campagnes email. Gère les listes de contacts.",
+    icon: "🐒",
     category: "communication",
     pricing: "Gratuit*",
     keyField: "mailchimp",
@@ -333,7 +333,7 @@ export const API_CATALOG: ApiEntry[] = [
     id: "twilio",
     name: "Twilio",
     description: "SMS, WhatsApp, appels vocaux. Envoie des notifications depuis les agents.",
-    icon: "ðŸ“±",
+    icon: "📱",
     category: "communication",
     pricing: "$0.008/SMS",
     keyField: "twilio",
@@ -341,12 +341,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ Business & CRM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Business & CRM ───────────────────────────────────────────────────────
   {
     id: "stripe",
     name: "Stripe",
-    description: "Lit les donnÃ©es de paiement, crÃ©e des liens de paiement, analyse les revenus.",
-    icon: "ðŸ’³",
+    description: "Lit les données de paiement, crée des liens de paiement, analyse les revenus.",
+    icon: "💳",
     category: "business",
     pricing: "Gratuit*",
     keyField: "stripe",
@@ -356,8 +356,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "hubspot",
     name: "HubSpot",
-    description: "CRM â€” crÃ©e des contacts, deals, notes Ã  partir des livrables gÃ©nÃ©rÃ©s.",
-    icon: "ðŸ”¶",
+    description: "CRM — crée des contacts, deals, notes à partir des livrables générés.",
+    icon: "🔶",
     category: "business",
     pricing: "Gratuit*",
     keyField: "hubspot",
@@ -367,8 +367,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "salesforce",
     name: "Salesforce",
-    description: "CRM enterprise â€” sync les donnÃ©es depuis les analyses des agents.",
-    icon: "â˜ï¸",
+    description: "CRM enterprise — sync les données depuis les analyses des agents.",
+    icon: "☁️",
     category: "business",
     pricing: "Payant",
     keyField: "salesforce",
@@ -378,8 +378,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "pipedrive",
     name: "Pipedrive",
-    description: "CRM ventes â€” crÃ©e des deals et activitÃ©s depuis les stratÃ©gies commerciales gÃ©nÃ©rÃ©es.",
-    icon: "ðŸ“ˆ",
+    description: "CRM ventes — crée des deals et activités depuis les stratégies commerciales générées.",
+    icon: "📈",
     category: "business",
     pricing: "Gratuit*",
     keyField: "pipedrive",
@@ -387,12 +387,12 @@ export const API_CATALOG: ApiEntry[] = [
     hasToolDef: true,
   },
 
-  // â”€â”€ Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Analytics ────────────────────────────────────────────────────────────
   {
     id: "ga4",
     name: "Google Analytics 4",
-    description: "Lit les donnÃ©es de trafic. Sofia peut analyser les vraies perfs SEO.",
-    icon: "ðŸ“Š",
+    description: "Lit les données de trafic. Sofia peut analyser les vraies perfs SEO.",
+    icon: "📊",
     category: "analytics",
     pricing: "Gratuit",
     keyField: "ga4",
@@ -402,8 +402,8 @@ export const API_CATALOG: ApiEntry[] = [
   {
     id: "mixpanel",
     name: "Mixpanel",
-    description: "Analytics produit â€” analyse les events utilisateurs pour les rapports SaaS.",
-    icon: "ðŸ“‰",
+    description: "Analytics produit — analyse les events utilisateurs pour les rapports SaaS.",
+    icon: "📉",
     category: "analytics",
     pricing: "Gratuit*",
     keyField: "mixpanel",
@@ -414,7 +414,7 @@ export const API_CATALOG: ApiEntry[] = [
     id: "plausible",
     name: "Plausible",
     description: "Analytics privacy-first. Lit les stats de trafic sans cookies.",
-    icon: "ðŸŒ¿",
+    icon: "🌿",
     category: "analytics",
     pricing: "$9/mois",
     keyField: "plausible",
