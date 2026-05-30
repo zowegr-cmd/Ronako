@@ -125,38 +125,58 @@ const TOUR_STEPS: TourStep[] = [
 ];
 
 const TOOLTIP_WIDTH = 320;
-const TOOLTIP_HEIGHT_ESTIMATE = 210;
+const TOOLTIP_HEIGHT_ESTIMATE = 260; // conservateur — évite les chevauchemants
 const SPOTLIGHT_PADDING = 10;
-const NAV_OFFSET = 16;
+const GAP_DEFAULT = 28;       // espace entre spotlight et tooltip
+const GAP_INTERACTIVE = 36;   // plus grand pour les étapes cliquables
 const RETRY_DELAY = 120;
 const INTERACTIVE_TIMEOUT = 10_000;
 
 // ─── Position utils ───────────────────────────────────────────────────────────
 
-function getTooltipPos(rect: SpotlightRect): TooltipPos {
+function getTooltipPos(rect: SpotlightRect, interactive = false): TooltipPos {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const p = NAV_OFFSET;
+  const p = interactive ? GAP_INTERACTIVE : GAP_DEFAULT;
   const w = TOOLTIP_WIDTH;
   const h = TOOLTIP_HEIGHT_ESTIMATE;
+  const margin = 16;
 
-  const clampL = (x: number) => Math.min(Math.max(x, p), vw - w - p);
-  const clampT = (y: number) => Math.min(Math.max(y, p), vh - h - p);
+  const clampL = (x: number) => Math.min(Math.max(x, margin), vw - w - margin);
+  const clampT = (y: number) => Math.min(Math.max(y, margin), vh - h - margin);
 
-  // Below
-  if (rect.top + rect.height + h + p < vh) {
-    return { top: rect.top + rect.height + p, left: clampL(rect.left), arrowSide: "top" };
-  }
-  // Above
-  if (rect.top - h - p > 0) {
-    return { top: rect.top - h - p, left: clampL(rect.left), arrowSide: "bottom" };
-  }
-  // Right
-  if (rect.left + rect.width + w + p < vw) {
-    return { top: clampT(rect.top), left: rect.left + rect.width + p, arrowSide: "left" };
-  }
-  // Left
-  return { top: clampT(rect.top), left: rect.left - w - p, arrowSide: "right" };
+  // Espace disponible sur chaque côté
+  const spaceBelow  = vh - (rect.top + rect.height);
+  const spaceAbove  = rect.top;
+  const spaceRight  = vw - (rect.left + rect.width);
+  const spaceLeft   = rect.left;
+
+  // Candidats triés par espace disponible — on prend le premier qui a assez de place
+  const candidates: Array<{ space: number; fn: () => TooltipPos }> = [
+    {
+      space: spaceBelow,
+      fn: () => ({ top: rect.top + rect.height + p, left: clampL(rect.left), arrowSide: "top" }),
+    },
+    {
+      space: spaceAbove,
+      fn: () => ({ top: rect.top - h - p, left: clampL(rect.left), arrowSide: "bottom" }),
+    },
+    {
+      space: spaceRight,
+      fn: () => ({ top: clampT(rect.top), left: rect.left + rect.width + p, arrowSide: "left" }),
+    },
+    {
+      space: spaceLeft,
+      fn: () => ({ top: clampT(rect.top), left: rect.left - w - p, arrowSide: "right" }),
+    },
+  ];
+
+  // Côté avec assez de place
+  const fit = candidates.find((c) => c.space >= h + p);
+  if (fit) return fit.fn();
+
+  // Fallback : côté avec le plus d'espace disponible
+  return candidates.sort((a, b) => b.space - a.space)[0].fn();
 }
 
 function getArrowStyle(pos: TooltipPos, rect: SpotlightRect): React.CSSProperties {
@@ -219,14 +239,13 @@ export function ProductTour({ onComplete }: ProductTourProps) {
   const prev = useCallback(() => goToStep(Math.max(0, step - 1)), [step, goToStep]);
 
   // Find element and set spotlight
-  const findAndHighlight = useCallback((tourId: string, attempts = 0) => {
+  const findAndHighlight = useCallback((tourId: string, stepIndex: number, attempts = 0) => {
     if (retryRef.current) clearTimeout(retryRef.current);
     const el = document.querySelector<HTMLElement>(`[data-tour="${tourId}"]`);
     if (!el) {
       if (attempts < 20) {
-        retryRef.current = setTimeout(() => findAndHighlight(tourId, attempts + 1), RETRY_DELAY);
+        retryRef.current = setTimeout(() => findAndHighlight(tourId, stepIndex, attempts + 1), RETRY_DELAY);
       }
-      // After 20 retries (~2.4s), show centered tooltip with no spotlight
       return;
     }
     const rect = el.getBoundingClientRect();
@@ -236,8 +255,9 @@ export function ProductTour({ onComplete }: ProductTourProps) {
       width: rect.width + SPOTLIGHT_PADDING * 2,
       height: rect.height + SPOTLIGHT_PADDING * 2,
     };
+    const isInteractive = TOUR_STEPS[stepIndex]?.interactive ?? false;
     setSpotlight(sr);
-    setTooltipPos(getTooltipPos(sr));
+    setTooltipPos(getTooltipPos(sr, isInteractive));
     el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
 
@@ -249,10 +269,10 @@ export function ProductTour({ onComplete }: ProductTourProps) {
 
     if (location.pathname !== currentStep.route) {
       navigate(currentStep.route);
-      const t = setTimeout(() => findAndHighlight(currentStep.tourId), 350);
+      const t = setTimeout(() => findAndHighlight(currentStep.tourId, step), 350);
       return () => clearTimeout(t);
     }
-    findAndHighlight(currentStep.tourId);
+    findAndHighlight(currentStep.tourId, step);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, transitioning, location.pathname]);
 
@@ -317,7 +337,7 @@ export function ProductTour({ onComplete }: ProductTourProps) {
       {/* ── Dark overlay (pointer-events: none so target stays clickable) ── */}
       <div
         className="fixed inset-0"
-        style={{ zIndex: 9998, background: "rgba(0,0,0,0.72)", pointerEvents: "none", transition: "opacity 200ms" }}
+        style={{ zIndex: 9998, background: "rgba(0,0,0,0.50)", pointerEvents: "none", transition: "opacity 200ms" }}
       />
 
       {/* ── Spotlight highlight ─────────────────────────────────────────── */}
