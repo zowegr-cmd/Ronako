@@ -19,7 +19,7 @@ const RULES: Rule[] = [
   {
     pattern: /excel|xlsx|tableur|spreadsheet|feuille.*calcul|calc/i,
     insight: {
-      message: "💡 Pour un vrai fichier .xlsx, le connecteur E2B (sandbox Python) peut exécuter un script openpyxl ou pandas. Sam peut écrire le code.",
+      message: "💡 Gratuit : Sam génère le tableau en Markdown ou CSV — tu l'ouvres dans Excel en 1 clic.\n\n💳 Payant : E2B sandbox (openpyxl/pandas) pour un vrai .xlsx avec formules et mise en forme.",
       blocking: false,
       connectorIds: ["e2b"],
       agentHint: "sam",
@@ -36,15 +36,16 @@ const RULES: Rule[] = [
   {
     pattern: /word|docx|\.doc\b|document.*word/i,
     insight: {
-      message: "💡 Option simple : Ella rédige en Markdown propre — tu colles dans Word ou Google Docs (importation directe). Option technique : E2B + python-docx pour un .docx formaté automatiquement.",
+      message: "💡 Gratuit : Ella rédige en Markdown → colle dans Word ou Google Docs (import natif).\n\n💳 Payant : E2B + python-docx pour un .docx formaté automatiquement avec styles.",
       blocking: false,
+      connectorIds: ["e2b"],
       agentHint: "ella",
     },
   },
   {
     pattern: /power\s*point|pptx|présentation.*slide|slide.*deck|slides?\b/i,
     insight: {
-      message: "💡 Option simple (sans connecteur) : Sam rédige en format Marp — du Markdown avec séparateurs --- que tu ouvres dans VS Code (extension Marp gratuite) et exportes en .pptx en 1 clic.\n\nOption avancée : Gamma.app API génère de belles présentations directement depuis du texte structuré.",
+      message: "💡 Gratuit : Sam rédige en Marp (Markdown avec ---) → extension VS Code gratuite → exporte en .pptx en 1 clic.\n\n💳 Payant : Gamma.app API génère des slides visuellement soignées avec mise en page automatique.",
       blocking: false,
       agentHint: "sam",
     },
@@ -52,8 +53,9 @@ const RULES: Rule[] = [
   {
     pattern: /pdf\b/i,
     insight: {
-      message: "💡 Option simple : Ella produit du HTML mis en page — tu l'imprimes en PDF depuis le navigateur (Ctrl+P → Enregistrer en PDF).\n\nOption code : E2B peut exécuter WeasyPrint pour un PDF avec styles précis.",
+      message: "💡 Gratuit : Ella génère du HTML mis en page → Ctrl+P dans le navigateur → PDF.\n\n💳 Payant : E2B sandbox (WeasyPrint/reportlab) pour un PDF avec mise en page pixel-perfect.",
       blocking: false,
+      connectorIds: ["e2b"],
       agentHint: "ella",
     },
   },
@@ -61,9 +63,10 @@ const RULES: Rule[] = [
   {
     pattern: /image|photo|illustration|visuel|logo|bannière|banner|thumbnail/i,
     insight: {
-      message: "💡 Pour générer des images, active Flux ($0.003/img, rapide) ou DALL-E 3 ($0.04/img, haute qualité) dans les connecteurs.",
+      message: "💡 Gratuit : Axel décrit l'image avec un prompt optimisé — tu génères toi-même sur Midjourney/Canva.\n\n💳 Payant : Flux ($0.003/img, rapide) ou DALL-E 3 ($0.04/img, qualité supérieure) directement depuis Ronako.",
       blocking: false,
       connectorIds: ["bfl", "openai"],
+      agentHint: "axel",
     },
   },
   {
