@@ -50,6 +50,9 @@ interface AgentStore {
   // Migration one-shot : connecteurs par défaut pour agents système
   hasAppliedDefaultConnectors: boolean;
   applyDefaultConnectors: () => void;
+  // Auto-install des packs essentiels au premier lancement
+  hasInstalledDefaultPacks: boolean;
+  installDefaultPacks: () => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -61,6 +64,7 @@ export const useAgentStore = create<AgentStore>()(
       consultants: CONSULTANT_AGENTS,
       customPacks: [],
       hasAppliedDefaultConnectors: false,
+      hasInstalledDefaultPacks: false,
 
       // ── Agents principaux ───────────────────────────────────────
       addAgent: (data) => {
@@ -213,6 +217,24 @@ export const useAgentStore = create<AgentStore>()(
             return { ...sk, useCount: newCount, avgScoreImpact: Math.round(newAvg * 100) / 100 };
           }),
         })),
+      installDefaultPacks: () => {
+        if (get().hasInstalledDefaultPacks) return;
+        // Installer forge_production et visual_creation au premier lancement
+        const ESSENTIAL_PACK_IDS = ["forge_production", "visual_creation"];
+        const existingSkillIds = new Set(get().skills.map((sk) => sk.id));
+        const allNewSkills: ReturnType<typeof materializeSkillPack> = [];
+        for (const packId of ESSENTIAL_PACK_IDS) {
+          const pack = SKILL_PACKS.find((p) => p.id === packId);
+          if (!pack) continue;
+          const newSkills = materializeSkillPack(pack).filter((sk) => !existingSkillIds.has(sk.id));
+          allNewSkills.push(...newSkills);
+        }
+        if (allNewSkills.length > 0) {
+          set((s) => ({ skills: [...s.skills, ...allNewSkills] }));
+        }
+        set({ hasInstalledDefaultPacks: true });
+      },
+
       applyDefaultConnectors: () => {
         if (get().hasAppliedDefaultConnectors) return;
         // Connecteurs sensés par agent selon leur rôle

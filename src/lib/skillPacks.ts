@@ -646,8 +646,148 @@ xaxis:{gridcolor:"#334155"},yaxis:{gridcolor:"#334155"}},{responsive:true});
 
 RÈGLE : Fichier 100% autonome. Toutes les données du JSON intégrées. Aucun placeholder visible.`,
     },
+    // ── Skills 6-10 (supplémentaires) ──────────────────────────────────────
+    {
+      id: "forge-facture-pdf",
+      name: "Facture PDF Pro",
+      description: "Génère des factures PDF avec numéro, TVA et QR code via WeasyPrint.",
+      agentIds: ["forge"],
+      isActive: true, isTemporary: false, inheritToAll: false,
+      triggerKeywords: ["facture", "invoice", "facturation"],
+      createdBy: "system",
+      content: `SKILL FACTURE PDF (WeasyPrint) :
+packages: ["weasyprint", "qrcode[pil]"]
+
+Génère une facture PDF professionnelle avec :
+- En-tête entreprise (logo, adresse, SIRET)
+- Ligne pour chaque produit/service (quantité, PU, total)
+- Calcul automatique HT, TVA (20%), TTC
+- QR code de paiement (optionnel)
+- Numéro de facture unique
+- Conditions de paiement
+
+HTML template → WeasyPrint → PDF`,
+    },
+    {
+      id: "forge-graphes-matplotlib",
+      name: "Graphes et Visualisations",
+      description: "Génère des graphes PNG haute résolution via matplotlib et seaborn.",
+      agentIds: ["forge"],
+      isActive: true, isTemporary: false, inheritToAll: false,
+      triggerKeywords: ["graphe", "graphique", "chart", "visualisation", "courbe"],
+      createdBy: "system",
+      content: `SKILL GRAPHES MATPLOTLIB :
+packages: ["matplotlib", "seaborn", "numpy"]
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# Style professionnel
+plt.style.use('seaborn-v0_8-darkgrid')
+fig, axes = plt.subplots(figsize=(12, 6), dpi=150)
+
+TYPES DE GRAPHES :
+Bar chart → ax.bar(x, y, color='#2E86AB')
+Line chart → ax.plot(x, y, marker='o', linewidth=2)
+Pie chart → ax.pie(values, labels=labels, autopct='%1.1f%%')
+Scatter → ax.scatter(x, y, alpha=0.7)
+Heatmap → sns.heatmap(data, annot=True, fmt='.2f')
+
+plt.tight_layout()
+plt.savefig('graphe.png', dpi=150, bbox_inches='tight')`,
+    },
+    {
+      id: "forge-qrcode",
+      name: "QR Code Generator",
+      description: "Génère des QR codes PNG ou SVG via la librairie qrcode.",
+      agentIds: ["forge"],
+      isActive: true, isTemporary: false, inheritToAll: false,
+      triggerKeywords: ["qr code", "qrcode", "qr", "code qr"],
+      createdBy: "system",
+      content: `SKILL QR CODE :
+packages: ["qrcode[pil]", "Pillow"]
+
+import qrcode
+from PIL import Image
+
+# QR Code simple
+qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
+qr.add_data("[URL_OU_TEXTE]")
+qr.make(fit=True)
+img = qr.make_image(fill_color="black", back_color="white")
+img.save("qrcode.png")
+
+# QR Code avec logo au centre (optionnel)
+# Ouvrir l'image générée, coller le logo au centre
+print("QR Code généré : qrcode.png")`,
+    },
+    {
+      id: "forge-calendrier-ical",
+      name: "Calendrier iCal",
+      description: "Génère des fichiers .ics importables dans Google Calendar, Outlook, Apple Calendar.",
+      agentIds: ["forge"],
+      isActive: true, isTemporary: false, inheritToAll: false,
+      triggerKeywords: ["calendrier", "calendar", "ical", "planning", "agenda"],
+      createdBy: "system",
+      content: `SKILL CALENDRIER ICAL :
+packages: ["icalendar"]
+
+from icalendar import Calendar, Event
+from datetime import datetime, timezone
+import uuid
+
+cal = Calendar()
+cal.add('prodid', '-//Ronako//FR')
+cal.add('version', '2.0')
+
+# Pour chaque événement du plan d'action :
+event = Event()
+event.add('summary', '[NOM_EVENEMENT]')
+event.add('dtstart', datetime([ANNEE], [MOIS], [JOUR], 9, 0, 0, tzinfo=timezone.utc))
+event.add('dtend', datetime([ANNEE], [MOIS], [JOUR], 10, 0, 0, tzinfo=timezone.utc))
+event.add('description', '[DESCRIPTION]')
+event['uid'] = str(uuid.uuid4()) + '@ronako'
+cal.add_component(event)
+
+with open('planning.ics', 'wb') as f:
+    f.write(cal.to_ical())
+print("Calendrier généré : planning.ics")`,
+    },
+    {
+      id: "forge-zip-multi",
+      name: "ZIP Multi-fichiers",
+      description: "Combine plusieurs fichiers générés en une archive ZIP téléchargeable.",
+      agentIds: ["forge"],
+      isActive: true, isTemporary: false, inheritToAll: false,
+      triggerKeywords: ["zip", "archive", "tous les fichiers", "pack"],
+      createdBy: "system",
+      content: `SKILL ZIP MULTI-FICHIERS :
+# Aucune dépendance — zipfile est natif Python
+
+import zipfile
+import os
+
+# Créer l'archive ZIP avec tous les fichiers générés
+files_to_zip = [f for f in os.listdir('.') if f != 'archive.zip' and not f.startswith('.')]
+
+with zipfile.ZipFile('archive.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+    for file in files_to_zip:
+        if os.path.isfile(file):
+            zf.write(file)
+            print(f"Ajouté : {file}")
+
+print(f"Archive créée : archive.zip ({len(files_to_zip)} fichiers)")
+
+# Nommer l'archive selon le projet
+# archive_name = f"{projet}-livrables.zip"`,
+    },
   ],
 };
+
+// Les packs visuels et production rejoignent SKILL_PACKS après leur déclaration
+SKILL_PACKS.push(VISUAL_CREATION_PACK);
+SKILL_PACKS.push(FORGE_PRODUCTION_PACK);
 
 // Générer des IDs stables pour les skills des packs
 export function materializeSkillPack(pack: SkillPack): Array<import("@/types").Skill> {

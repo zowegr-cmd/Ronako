@@ -15,13 +15,14 @@ import { useAgentStore } from "@/store/agentStore";
 export default function App() {
   const { loadApiKey, keyLoaded, checkMonthlyReset } = useSettingsStore();
   const { migrateFromSettings } = useConnectorStore();
-  const { applyDefaultConnectors } = useAgentStore();
+  const { applyDefaultConnectors, installDefaultPacks } = useAgentStore();
 
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
     checkMonthlyReset();
     migrateFromSettings();
     applyDefaultConnectors();
+    installDefaultPacks();
     // Appliquer le thème persisté au chargement (sinon mineral par défaut)
     const { theme } = useSettingsStore.getState();
     document.documentElement.setAttribute("data-theme", theme);

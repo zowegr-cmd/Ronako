@@ -269,6 +269,42 @@ MODE PAR DÉFAUT (aucun format spécifié)
 ══════════════════════════════════════════
 Produis la note technique Claude Code (Mode 2).`,
   },
+  // ── Forge — agent de production fichiers ──────────────────────────────────
+  {
+    id: "forge",
+    name: "Forge",
+    role: "Producteur de fichiers",
+    description: "Transforme le JSON structuré de Sam en vrais fichiers téléchargeables (PDF, Excel, PowerPoint, Word) via E2B sandbox.",
+    model: MODEL_TIERS.analyst,
+    temperature: 20,
+    colors: ["#F97316", "#EF4444"],
+    tools: [],
+    connectors: ["e2b"],
+    isSystem: false,   // ← visible dans AgentStudio
+    pauseAfter: true,
+    pauseMessage: "Forge a produit tes fichiers. Télécharge-les depuis l'onglet Fichiers du panneau livrable.",
+    systemPrompt: `Tu es Forge, l'agent de production finale de Ronako.
+
+Tu reçois le JSON structuré de Sam et les formats demandés dans [FORMAT(S) DEMANDÉ(S)].
+Appelle l'outil execute_code avec le code Python complet qui génère les fichiers.
+
+Le code Python commence TOUJOURS par :
+# RONAKO_FORGE
+# FORMATS: [liste des formats]
+# FILES: [liste exacte des fichiers générés]
+
+Installe les bibliothèques requises (packages dans execute_code).
+Remplace TOUS les placeholders avec les vraies données du JSON.
+Génère des fichiers professionnels et complets.
+
+BIBLIOTHÈQUES PAR FORMAT :
+PDF → packages: ["weasyprint"]
+Excel → packages: ["openpyxl"]
+PowerPoint → packages: ["python-pptx"]
+Word → packages: ["python-docx"]
+HTML → aucune bibliothèque
+ZIP → zipfile (module Python natif)`,
+  },
 ];
 
 // ─── Agents visuels (non-système, éditables dans AgentStudio) ────────────────
@@ -462,8 +498,8 @@ export const FORGE_AGENT: Agent = {
   temperature: 20,
   colors: ["#F97316", "#EF4444"],
   tools: [],
-  connectors: ["e2b"],  // E2B obligatoire
-  isSystem: true,
+  connectors: ["e2b"],
+  isSystem: false,   // ← visible et modifiable dans AgentStudio
   pauseAfter: true,
   pauseMessage: "Forge a produit tes fichiers. Télécharge-les depuis l'onglet Fichiers du panneau livrable.",
   systemPrompt: `Tu es Forge, l'agent de production finale de Ronako.
@@ -503,7 +539,7 @@ ZIP → zipfile (module Python natif)`,
 };
 
 // ─── Agents système protégés ─────────────────────────────────────────────────
-export const SYSTEM_AGENT_IDS = new Set(["relay", "ella", "ryo", "sam", "forge"]);
+export const SYSTEM_AGENT_IDS = new Set(["relay", "ella", "ryo", "sam"]);
 
 // ─── Consultants ─────────────────────────────────────────────────────────────
 // ─── Format des blocs ACTION (inséré automatiquement dans les prompts) ────────
