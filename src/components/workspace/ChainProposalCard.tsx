@@ -4,7 +4,7 @@ import {
   Zap, X, Plus, GripVertical, ChevronDown, ChevronUp,
   Sparkles, RotateCcw, Wand2, CheckCircle2, AlertCircle,
   Pencil, Check, Dna, TrendingDown, Timer, Star,
-  Info, ChevronRight,
+  Info, ChevronRight, Loader2,
 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
@@ -29,6 +29,7 @@ import { estimateChainCost, formatCentsEstimate } from "@/lib/costEstimator";
 import { AGENT_DELIVERABLE_DESCRIPTIONS, DELIVERABLE_FORMATS } from "@/lib/formatSelector";
 import { FORMAT_REQUIREMENTS } from "@/lib/formatRequirements";
 import { analyzeCustomDeliverable, inferFormatsFromBrief, type CustomDeliverableInsight } from "@/lib/customDeliverableAnalyzer";
+import { useCustomDeliverableAnalysis } from "@/hooks/useCustomDeliverableAnalysis";
 import type { ChainProposal, ProposedAgent, Agent, OptimizerSuggestion } from "@/types";
 import type { ConnectorKeys } from "@/store/settingsStore";
 import { cn } from "@/lib/utils";
@@ -82,20 +83,44 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
   const { skills: allSkills, setTemporarySkills, toggleSkill } = useAgentStore();
   const { getConnectorKey } = useSettingsStore();
 
+  // Analyse Haiku — contexte enrichi (skills + connecteurs dispo)
+  const marcusAnalysis = useCustomDeliverableAnalysis({
+    brief: proposal.brief,
+    availableSkills: allSkills.map((s) => ({ id: s.id, name: s.name, agentIds: s.agentIds })),
+    configuredConnectors: (["tavily","openai","bfl","e2b","notion","github","screenshot"] as const)
+      .filter((c) => !!getConnectorKey(c)),
+  });
+
   // Pré-sélection intelligente basée sur le brief Marcus + contexte dossier
   useEffect(() => {
     setSelectedFormats(inferFormatsFromBrief(proposal.brief, hasFolder));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Analyse temps-réel du champ livrable custom (debounce 350ms)
+  // Analyse hybride : mots-clés instantanés, puis Haiku si pas de match (debounce 900ms)
   useEffect(() => {
-    if (!customDeliverableNote.trim()) { setCustomInsight(null); return; }
-    const t = setTimeout(() => {
-      setCustomInsight(analyzeCustomDeliverable(customDeliverableNote));
-    }, 350);
+    const text = customDeliverableNote.trim();
+    if (!text) { setCustomInsight(null); marcusAnalysis.abort(); return; }
+
+    // 1. Analyse locale immédiate
+    const localResult = analyzeCustomDeliverable(text);
+    if (localResult) {
+      setCustomInsight(localResult);
+      return; // pas besoin de Haiku
+    }
+
+    // 2. Aucun mot-clé → Haiku après 900ms si ≥4 chars
+    setCustomInsight(null);
+    if (text.length < 4) return;
+    const t = setTimeout(() => { void marcusAnalysis.analyze(text); }, 900);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customDeliverableNote]);
+
+  // Synchroniser l'insight Haiku dans l'état local
+  useEffect(() => {
+    if (marcusAnalysis.insight) setCustomInsight(marcusAnalysis.insight);
+  }, [marcusAnalysis.insight]);
 
   const onFormatToggle = (fmtId: string) => {
     const isSelected = selectedFormats.includes(fmtId);
@@ -559,19 +584,24 @@ export function ChainProposalCard({ proposal, onConfirm, onCancel, loading, hasF
         <div className="flex flex-col gap-1.5 mt-1">
           <div className="flex items-center gap-2">
             <span className="text-silk/25 text-[11px] shrink-0">+ autre :</span>
-            <input
-              value={customDeliverableNote}
-              onChange={(e) => setCustomDeliverableNote(e.target.value)}
-              placeholder="Excel, PDF, logo, vidéo YouTube…"
-              className={cn(
-                "flex-1 bg-graphite-light border rounded-lg px-2.5 py-1 text-[11px] text-silk/70 placeholder-silk/20 focus:outline-none transition-colors",
-                customInsight?.blocking
-                  ? "border-warning/50 focus:border-warning/70"
-                  : customInsight
-                    ? "border-electric/40 focus:border-electric/60"
-                    : "border-crystal/60 focus:border-electric/40",
+            <div className="flex-1 relative">
+              <input
+                value={customDeliverableNote}
+                onChange={(e) => setCustomDeliverableNote(e.target.value)}
+                placeholder="Excel, PDF, logo, vidéo YouTube…"
+                className={cn(
+                  "w-full bg-graphite-light border rounded-lg px-2.5 py-1 text-[11px] text-silk/70 placeholder-silk/20 focus:outline-none transition-colors",
+                  customInsight?.blocking
+                    ? "border-warning/50 focus:border-warning/70"
+                    : customInsight
+                      ? "border-electric/40 focus:border-electric/60"
+                      : "border-crystal/60 focus:border-electric/40",
+                )}
+              />
+              {marcusAnalysis.analyzing && (
+                <Loader2 size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-electric/50 animate-spin" />
               )}
-            />
+            </div>
           </div>
 
           {/* Insight en temps réel */}
