@@ -6,6 +6,7 @@ import {
   GitFork,
   Settings,
   ChevronLeft,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectStore } from "@/store/projectStore";
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { path: "/workspace", icon: LayoutDashboard, label: "Workspace" },
   { path: "/studio", icon: Users, label: "Studio" },
   { path: "/orchestrator", icon: GitFork, label: "Orchestrateur" },
+  { path: "/packs", icon: Package, label: "Pack Manager" },
 ];
 
 export function NavBar() {

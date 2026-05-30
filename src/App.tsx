@@ -6,15 +6,17 @@ import { Workspace } from "@/screens/Workspace";
 import { AgentStudio } from "@/screens/AgentStudio";
 import { Orchestrator } from "@/screens/Orchestrator";
 import { Settings } from "@/screens/Settings";
+import { PackManager } from "@/screens/PackManager";
 import { useSettingsStore } from "@/store/settingsStore";
 
 export default function App() {
-  const { loadApiKey, keyLoaded } = useSettingsStore();
+  const { loadApiKey, keyLoaded, checkMonthlyReset } = useSettingsStore();
 
-  // Charger la clé API depuis le keyring OS au premier démarrage
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
-  }, [keyLoaded, loadApiKey]);
+    checkMonthlyReset(); // reset auto si nouveau mois civil
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <MemoryRouter initialEntries={["/"]}>
@@ -25,6 +27,7 @@ export default function App() {
           <Route path="/studio" element={<AgentStudio />} />
           <Route path="/orchestrator" element={<Orchestrator />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/packs" element={<PackManager />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
