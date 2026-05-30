@@ -201,6 +201,42 @@ pub async fn tavily_search(query: String, api_key: String) -> Result<String, Str
     response.text().await.map_err(|e| e.to_string())
 }
 
+// ─── Connecteur HTTP custom (Phase 9) ────────────────────────────────────────
+
+#[tauri::command]
+pub async fn http_custom_call(
+    url: String,
+    method: String,
+    headers: Vec<(String, String)>,
+    body: Option<String>,
+) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let method_parsed = match method.to_uppercase().as_str() {
+        "GET"    => reqwest::Method::GET,
+        "POST"   => reqwest::Method::POST,
+        "PUT"    => reqwest::Method::PUT,
+        "PATCH"  => reqwest::Method::PATCH,
+        "DELETE" => reqwest::Method::DELETE,
+        other    => return Err(format!("Méthode HTTP inconnue : {}", other)),
+    };
+
+    let mut req = client.request(method_parsed, &url);
+    for (name, value) in &headers {
+        req = req.header(name.as_str(), value.as_str());
+    }
+    if let Some(b) = body {
+        req = req.header("content-type", "application/json").body(b);
+    }
+
+    let response = req.send().await.map_err(|e| e.to_string())?;
+    let status = response.status().as_u16();
+    let text = response.text().await.map_err(|e| e.to_string())?;
+    if status >= 400 {
+        return Err(format!("HTTP {} : {}", status, &text[..text.len().min(500)]));
+    }
+    Ok(text)
+}
+
 // ─── Watcher journal_dev.md ───────────────────────────────────────────────────
 
 use std::sync::Mutex;

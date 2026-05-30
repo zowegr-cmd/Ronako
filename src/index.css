@@ -35,6 +35,12 @@
   --color-accent: #FF6B35;
 }
 
+@layer components {
+  .input-sm {
+    @apply w-full bg-graphite-light border border-crystal/60 rounded-lg px-3 py-1.5 text-xs text-silk/70 placeholder-silk/20 focus:outline-none focus:border-electric/50 transition-colors;
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;

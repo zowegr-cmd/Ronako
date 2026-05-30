@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Eye, EyeOff, Shield, Volume2, VolumeX, CreditCard,
-  Info, Trash2, Check, RotateCcw, Plug, Key,
+  Info, Trash2, Check, RotateCcw, Plug,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -10,10 +10,9 @@ import { Toggle } from "@/components/ui/Toggle";
 import { Slider } from "@/components/ui/Slider";
 import { Badge } from "@/components/ui/Badge";
 import { MODEL_LABELS, MODEL_COST_RATES, type ModelId } from "@/types";
-import { ALL_CONNECTORS } from "@/lib/connectors/types";
 import { useSettingsStore } from "@/store/settingsStore";
 import { formatCost } from "@/lib/utils";
-import type { ConnectorKeys, MarcusPersona, AppTheme, ExpertiseLevel, DeliverableLanguage } from "@/store/settingsStore";
+import type { MarcusPersona, AppTheme, ExpertiseLevel, DeliverableLanguage } from "@/store/settingsStore";
 
 const MODELS: ModelId[] = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"];
 
@@ -23,7 +22,7 @@ export function Settings() {
     soundEnabled, setSoundEnabled,
     monthlyBudgetCap, setMonthlyBudgetCap,
     monthlySpend, hasValidApiKey,
-    resetMonthlySpend, connectorKeys, setConnectorKey,
+    resetMonthlySpend,
     marcusPersona, setMarcusPersona,
     theme, setTheme,
     expertiseLevel, setExpertiseLevel,
@@ -35,10 +34,6 @@ export function Settings() {
   const [keyInput, setKeyInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [connectorInputs, setConnectorInputs] = useState<Record<string, string>>({});
-  const [showConnectorKey, setShowConnectorKey] = useState<Record<string, boolean>>({});
-  const [savingConnector, setSavingConnector] = useState<Record<string, boolean>>({});
-
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
   }, [keyLoaded, loadApiKey]);
@@ -46,15 +41,6 @@ export function Settings() {
   useEffect(() => {
     if (keyLoaded && apiKey) setKeyInput(apiKey);
   }, [keyLoaded, apiKey]);
-
-  useEffect(() => {
-    // Pré-remplir les champs connecteurs depuis le store
-    const inputs: Record<string, string> = {};
-    for (const c of ALL_CONNECTORS) {
-      inputs[c.id] = connectorKeys[c.apiKeyName] ?? "";
-    }
-    setConnectorInputs(inputs);
-  }, [connectorKeys]);
 
   const handleSaveKey = async () => {
     if (!keyInput.trim()) return;
@@ -68,15 +54,6 @@ export function Settings() {
     }
   };
 
-  const handleSaveConnector = async (connectorId: string, apiKeyName: keyof ConnectorKeys) => {
-    const val = connectorInputs[connectorId] ?? "";
-    setSavingConnector((s) => ({ ...s, [connectorId]: true }));
-    try {
-      await setConnectorKey(apiKeyName, val);
-    } finally {
-      setSavingConnector((s) => ({ ...s, [connectorId]: false }));
-    }
-  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -127,50 +104,17 @@ export function Settings() {
           </div>
         </Section>
 
-        {/* ── Connecteurs & APIs ────────────────────────────────────── */}
+        {/* ── Connecteurs & APIs → Pack Manager ─────────────────────── */}
         <Section title="Connecteurs & APIs" icon={<Plug size={14} />}>
           <div className="flex flex-col gap-3">
             <p className="text-xs text-silk/40 leading-relaxed">
-              Clés stockées dans le keyring OS. Activez les connecteurs sur chaque agent via l'Agent Studio.
+              Toute la gestion des connecteurs a été déplacée dans le <strong className="text-silk/60">Pack Manager</strong>.
+              Configure tes clés API, ajoute des serveurs MCP, et crée des connecteurs custom depuis un seul endroit.
             </p>
-            {ALL_CONNECTORS.map((connector) => (
-              <div key={connector.id} className="flex flex-col gap-1.5 pb-3 border-b border-crystal/30 last:border-0 last:pb-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{connector.icon}</span>
-                  <p className="text-xs font-medium text-silk/70">{connector.name}</p>
-                  <p className="text-[10px] text-silk/30 flex-1 truncate">{connector.description}</p>
-                  {connectorKeys[connector.apiKeyName] && (
-                    <Badge variant="success" className="text-[9px]">✓</Badge>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type={showConnectorKey[connector.id] ? "text" : "password"}
-                      value={connectorInputs[connector.id] ?? ""}
-                      onChange={(e) => setConnectorInputs((s) => ({ ...s, [connector.id]: e.target.value }))}
-                      placeholder={`Clé ${connector.name}…`}
-                      className="w-full bg-graphite-light border border-crystal rounded-lg px-2.5 pr-8 py-1.5 text-xs text-silk font-mono placeholder-silk/20 focus:outline-none focus:border-electric/40 transition-colors"
-                    />
-                    <button
-                      onClick={() => setShowConnectorKey((s) => ({ ...s, [connector.id]: !s[connector.id] }))}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-silk/20 hover:text-silk/50"
-                    >
-                      {showConnectorKey[connector.id] ? <EyeOff size={11} /> : <Eye size={11} />}
-                    </button>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0 h-7 text-[11px]"
-                    loading={savingConnector[connector.id]}
-                    onClick={() => handleSaveConnector(connector.id, connector.apiKeyName)}
-                  >
-                    <Key size={10} /> Sauver
-                  </Button>
-                </div>
-              </div>
-            ))}
+            <Button variant="ghost" size="sm" className="w-full justify-start"
+              onClick={() => document.dispatchEvent(new CustomEvent("navigate-packs"))}>
+              🔌 Ouvrir le Pack Manager →
+            </Button>
           </div>
         </Section>
 

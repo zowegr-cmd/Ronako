@@ -27,6 +27,7 @@ pub fn run() {
             anthropic::anthropic_stream_with_tools,
             folder::read_project_folder,
             commands::tavily_search,
+            commands::http_custom_call,
             // Bibliothèque livrables
             commands::save_deliverable,
             commands::list_deliverables,

@@ -28,6 +28,7 @@ import type { Agent } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { generateId } from "@/lib/utils";
+import { useConnectorStore } from "@/store/connectorStore";
 
 export function useChainRunner(teamId: string) {
   const abortRef = useRef(false);
@@ -41,6 +42,7 @@ export function useChainRunner(teamId: string) {
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
+  const { getKey: getConnectorKey } = useConnectorStore();
   const toast = useToastStore();
   const { stream, abort: abortStream } = useAnthropicStream();
   const { playChainStart, playChime } = useSounds();
@@ -264,13 +266,14 @@ export function useChainRunner(teamId: string) {
 
           // ── Phase 8 — Tool Use : router vers la bonne commande ───
           const agentConnectorIds = agent.connectors ?? [];
+          // Merge : connectorStore (nouvelle source) + settingsStore (backwards compat)
           const toolKeyMap: ToolKeys = {
-            openai:  connectorKeys.openai,
-            bfl:     connectorKeys.bfl,
-            e2b:     connectorKeys.e2b,
-            notion:  connectorKeys.notion,
-            github:  connectorKeys.github,
-            tavily:  connectorKeys.tavily,
+            openai:  getConnectorKey("openai")  || connectorKeys.openai,
+            bfl:     getConnectorKey("bfl")     || connectorKeys.bfl,
+            e2b:     getConnectorKey("e2b")     || connectorKeys.e2b,
+            notion:  getConnectorKey("notion")  || connectorKeys.notion,
+            github:  getConnectorKey("github")  || connectorKeys.github,
+            tavily:  getConnectorKey("tavily")  || connectorKeys.tavily,
           };
           const agentTools = buildToolDefinitions(agentConnectorIds, toolKeyMap);
           const useToolsApi = agentTools.length > 0;
