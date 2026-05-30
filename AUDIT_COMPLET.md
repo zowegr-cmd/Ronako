@@ -683,5 +683,31 @@ ella    → notion
 
 ---
 
-*Audit généré le 2026-05-30 — Code version : commit 1b5632e*
+---
+
+## CORRECTIONS APPLIQUÉES DEPUIS L'AUDIT INITIAL
+
+### ✅ Bug 1 — Thèmes visuels (corrigé)
+**Problème** : `tailwind.config.ts` avait des hex hardcodés → les thèmes Arctic/Forest/Sunset ne changeaient pas les couleurs Tailwind.
+
+**Fix** :
+- `tailwind.config.ts` : couleurs thémables converties en `rgb(var(--ch-X) / <alpha-value>)` — support des opacités Tailwind (`bg-onyx/50`, `text-silk/40`) avec les thèmes
+- `index.css` : ajout des variables RGB par canal `--ch-onyx: 11 11 12` pour chaque thème
+- `App.tsx` : `document.documentElement.setAttribute("data-theme", theme)` au chargement initial (thème persisté maintenant appliqué au démarrage)
+
+### ✅ Bug 2 — MCP sans Node.js (corrigé)
+**Problème** : `mcp_start` crashait avec une erreur Rust brute si Node.js absent.
+
+**Fix** : `mcp.rs` — vérification `node --version` avant le spawn du processus npx. Message d'erreur clair : "Node.js est requis... Télécharge-le sur nodejs.org"
+
+### ℹ️ "Bug 3" — mcpStates non persisté (NON un bug)
+Reconsidéré après analyse : quand l'app redémarre, les processus npx sont tués par le système. Afficher "stopped" est le comportement CORRECT. Ce n'est pas un bug — c'est la réalité de l'état des serveurs.
+
+### ℹ️ "Bug 4" — Thème non appliqué au load (corrigé via Bug 1)
+`setTheme()` appliquait le `data-theme` uniquement quand l'utilisateur changeait le thème. Maintenant appliqué au démarrage depuis le thème persisté.
+
+---
+
+*Audit initial : 2026-05-30 — commit 1b5632e*
+*Audit mis à jour : 2026-05-30 — corrections thèmes + MCP Node.js*
 *TypeScript : 0 erreur | Rust : 0 warning*

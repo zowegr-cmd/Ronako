@@ -2,36 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Thèmes visuels Phase 7.12 ─────────────────────────────────────────── */
+/* ─── Thèmes visuels — Variables RGB par canal (Tailwind alpha-value support) ── */
+/*
+  Format : --ch-X : "R G B"  (canaux séparés par espaces)
+  Tailwind utilise : rgb(var(--ch-X) / alpha)
+  Cela permet bg-onyx/50, text-silk/40, etc. de fonctionner avec les thèmes.
+*/
+
 :root, [data-theme="mineral"] {
+  --ch-onyx:           11 11 12;      /* #0B0B0C */
+  --ch-graphite:       22 22 24;      /* #161618 */
+  --ch-graphite-light: 28 28 30;      /* #1C1C1E */
+  --ch-crystal:        42 42 44;      /* #2A2A2C */
+  --ch-crystal-light:  58 58 60;      /* #3A3A3C */
+  --ch-silk:           245 245 247;   /* #F5F5F7 */
+  /* Compat legacy */
   --color-onyx: #0B0B0C;
-  --color-graphite: #161618;
-  --color-crystal: #2A2A2C;
-  --color-silk: #F5F5F7;
+  --color-graphite: #1C1C1E;
   --color-accent: #007AFF;
 }
 
 [data-theme="arctic"] {
+  --ch-onyx:           247 248 250;   /* #F7F8FA — fond très clair */
+  --ch-graphite:       255 255 255;   /* #FFFFFF */
+  --ch-graphite-light: 248 250 252;   /* #F8FAFC */
+  --ch-crystal:        226 228 232;   /* #E2E4E8 */
+  --ch-crystal-light:  210 212 218;   /* #D2D4DA */
+  --ch-silk:           26 26 46;      /* #1A1A2E — texte sombre */
   --color-onyx: #F7F8FA;
-  --color-graphite: #FFFFFF;
-  --color-crystal: #E2E4E8;
-  --color-silk: #1A1A2E;
+  --color-graphite: #F8FAFC;
   --color-accent: #0066CC;
 }
 
 [data-theme="forest"] {
+  --ch-onyx:           13 26 18;      /* #0D1A12 */
+  --ch-graphite:       22 32 24;      /* #162018 */
+  --ch-graphite-light: 26 40 30;      /* #1A281E */
+  --ch-crystal:        36 48 40;      /* #243028 */
+  --ch-crystal-light:  50 68 55;      /* #324437 */
+  --ch-silk:           232 245 233;   /* #E8F5E9 */
   --color-onyx: #0D1A12;
-  --color-graphite: #162018;
-  --color-crystal: #243028;
-  --color-silk: #E8F5E9;
+  --color-graphite: #1A281E;
   --color-accent: #4CAF50;
 }
 
 [data-theme="sunset"] {
+  --ch-onyx:           26 10 10;      /* #1A0A0A */
+  --ch-graphite:       35 18 18;      /* #231212 */
+  --ch-graphite-light: 42 22 18;      /* #2A1612 */
+  --ch-crystal:        58 26 26;      /* #3A1A1A */
+  --ch-crystal-light:  75 35 32;      /* #4B2320 */
+  --ch-silk:           255 243 224;   /* #FFF3E0 */
   --color-onyx: #1A0A0A;
-  --color-graphite: #231212;
-  --color-crystal: #3A1A1A;
-  --color-silk: #FFF3E0;
+  --color-graphite: #2A1612;
   --color-accent: #FF6B35;
 }
 

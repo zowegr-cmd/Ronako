@@ -179,6 +179,27 @@ fn spawn_npx(package: &str, extra_args: &[&str]) -> Result<Child, String> {
 
 /// Démarre un serveur MCP et retourne ses outils disponibles
 pub async fn start_server(server_id: String, package: String, extra_args: Vec<String>) -> Result<Vec<McpTool>, String> {
+    // Vérifier que Node.js / npx est disponible
+    #[cfg(target_os = "windows")]
+    let node_check = tokio::process::Command::new("cmd")
+        .args(["/c", "node", "--version"])
+        .output()
+        .await;
+    #[cfg(not(target_os = "windows"))]
+    let node_check = tokio::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .await;
+
+    if let Err(_) | Ok(_) = node_check.as_ref() {
+        if node_check.is_err() || !node_check.as_ref().unwrap().status.success() {
+            return Err(
+                "Node.js est requis pour les serveurs MCP mais n'est pas installé.\n\
+                 → Télécharge-le sur https://nodejs.org (LTS recommandé)".to_string()
+            );
+        }
+    }
+
     // Arrêter un éventuel serveur déjà en place
     let _ = stop_server(&server_id).await;
 

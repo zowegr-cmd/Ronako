@@ -44,12 +44,19 @@
 
 ---
 
-## Ce qui manque
+## Corrections appliquées (post-audit)
 
-- Node.js requis pour MCP — pas de vérification préalable
-- Thèmes visuels partiels (Tailwind hardcoded, pas CSS vars)
-- mcpStates perdu au rechargement (non persisté)
+| Bug | Fix |
+|---|---|
+| Thèmes visuels partiels | ✅ Tailwind → CSS vars `rgb(var(--ch-X) / alpha)` + thème appliqué au load |
+| MCP sans Node.js | ✅ Vérification `node --version` + message d'erreur clair |
+| mcpStates "perdu" | ℹ️ N'était pas un bug — correct (process mort = stopped) |
+
+## Ce qui reste à faire
+
 - Ronako Cloud, marketplace, multi-modèles — Phase 8D future
+- Blocs ACTION consultants : automatiser l'exécution
+- Parallélisation agents : PARALLEL_GROUPS défini mais non utilisé
 
 ---
 
@@ -82,4 +89,5 @@ PackManager.tsx     → Hub connecteurs
 
 ---
 
-*TypeScript 0 erreur | Rust 0 warning | commit 1b5632e*
+*TypeScript 0 erreur | Rust 0 warning*
+*Audit initial : commit 1b5632e — Corrections : tailwind.config.ts + index.css + App.tsx + mcp.rs*

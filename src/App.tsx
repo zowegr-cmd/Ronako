@@ -19,8 +19,11 @@ export default function App() {
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
     checkMonthlyReset();
-    migrateFromSettings();       // clés settingsStore → connectorStore
-    applyDefaultConnectors();    // connecteurs par défaut sur les agents système
+    migrateFromSettings();
+    applyDefaultConnectors();
+    // Appliquer le thème persisté au chargement (sinon mineral par défaut)
+    const { theme } = useSettingsStore.getState();
+    document.documentElement.setAttribute("data-theme", theme);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
