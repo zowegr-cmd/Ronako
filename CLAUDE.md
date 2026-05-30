@@ -479,25 +479,76 @@ Visuels       : URLs images stockées dans .ronako/visuals/
 
 ---
 
-### 🔵 PHASE 8 — Vision long terme
+### 🔵 PHASE 8 — TOOL USE RÉEL (agents qui agissent)
 
 ```
-[ ] 8.1  Batch mode
-[ ] 8.2  Connecteur GitHub (Nina lit le repo)
-[ ] 8.3  Connecteur mémoire longue
-[ ] 8.4  Veille automatique hebdomadaire
-[ ] 8.5  Partage et collaboration
-[ ] 8.6  Serveur codes partage cloud
-[ ] 8.7  Marketplace skills et agents
-[ ] 8.8  Support multi-modèles
-[ ] 8.9  Ronako Cloud
-[ ] 8.10 Briefing vocal
-[ ] 8.11 Connecteur Google Analytics
-[ ] 8.12 Analytics avancés
-[ ] 8.13 API Ronako
-[ ] 8.14 Connecteur calendrier
-[ ] 8.15 Split test intégré
-[ ] 8.16 Victor — Validateur d'équipe
+PRINCIPE FONDAMENTAL :
+  Aujourd'hui les connecteurs sont du contexte injecté dans les prompts.
+  Phase 8 = boucle tool use réelle :
+    Claude émet tool_use → Rust exécute → tool_result → Claude continue
+
+ARCHITECTURE (Rust) :
+  1. Construire tools[] selon connecteurs actifs de l'agent
+  2. Envoyer à l'API avec tools + tool_choice
+  3. Détecter content type "tool_use" dans la réponse
+  4. Exécuter l'outil côté Rust (HTTP externe)
+  5. Renvoyer tool_result via nouveau message
+  6. Boucler jusqu'à réponse finale sans tool_use
+  7. Streamer le texte final via events Tauri
+
+FICHIERS À CRÉER :
+  src-tauri/src/tools/mod.rs     — dispatcher d'outils
+  src-tauri/src/tools/dalle.rs   — OpenAI Images API
+  src-tauri/src/tools/flux.rs    — BFL API
+  src-tauri/src/tools/e2b.rs     — E2B sandbox (exécution code)
+  src-tauri/src/tools/notion.rs  — export Notion
+  src-tauri/src/tools/github.rs  — opérations GitHub
+
+FICHIERS À MODIFIER :
+  src-tauri/src/anthropic.rs     ⚠️ PROTÉGÉ — adapter avec précaution
+                                 Ajouter la boucle tool_use sans casser le streaming
+  src/components/workspace/DeliverablePanel.tsx
+                                 Afficher images générées + liens téléchargement fichiers
+  src/hooks/useChainRunner.ts    Passer connecteurs actifs par agent
+  src/lib/chainEngine.ts         Injecter tool definitions dans buildAgentPrompt
+
+OUTILS À IMPLÉMENTER (JSON schemas) :
+  generate_image  → dalle | flux → retourne URL image
+  execute_code    → e2b → retourne stdout + fichiers base64
+  web_search      → tavily → retourne résultats structurés
+  export_notion   → notion → retourne page_url
+  github_push     → github → retourne commit_sha + url
+  read_file       → filesystem → retourne contenu fichier projet
+
+─────────────────────────────────────────────────────────────────
+
+[ ] 8A — Images en direct (Phase 8A — rapide)
+         DALL-E 3 et Flux dans la boucle tool use
+         Axel appelle generate_image → image dans le livrable
+         Coût affiché par image dans DeliverablePanel
+         ConnectorKeys: openai (DALL-E), bfl (Flux)
+
+[ ] 8B — Exécution de code (Phase 8B — gros impact)
+         E2B sandbox : Python + Node.js
+         Sam appelle execute_code → génère vrai .xlsx/.pptx/.pdf
+         Téléchargement depuis DeliverablePanel (base64 → Blob)
+         ConnectorKeys: e2b
+
+[ ] 8C — Intégrations externes (Phase 8C)
+         Notion : Ella exporte le livrable directement
+         GitHub : Sam crée commits/PRs réels
+         Tavily : intégrer dans la boucle (déjà partiellement fait)
+         ConnectorKeys: notion, github, tavily
+
+[ ] 8D — Vision long terme
+         Batch mode
+         Connecteur mémoire longue
+         Veille automatique hebdomadaire
+         Marketplace skills et agents
+         Support multi-modèles (GPT-4, Gemini)
+         Ronako Cloud + collaboration
+         Briefing vocal
+         API Ronako publique
 ```
 
 ---

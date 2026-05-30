@@ -345,6 +345,50 @@ Formats entièrement libres, défaut intelligent par contexte, suggestions non b
 
 ---
 
+## SESSION 2026-05-30 — Formats libres + analyse livrable + Phase 8 roadmap
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ ChainProposalCard — formats tous décochables, défaut intelligent (brief+dossier)
+✅ formatRequirements.ts — suggestions Notion bloquant, skills email/social/action
+✅ customDeliverableAnalyzer.ts — 18 règles mots-clés (Excel, PPT, PDF, image...)
+✅ useCustomDeliverableAnalysis.ts — analyse Haiku auto (debounce 900ms si no match)
+✅ Hybrid : mots-clés instantanés → Haiku si cas ambigus
+✅ Fix regex "power\s*point" (espace)
+✅ Pré-sélection formats depuis brief Marcus (inferFormatsFromBrief)
+✅ Suggestions honnêtes : ✅ Ce qui fonctionne maintenant / 🔜 À venir
+✅ Phase 8 ajoutée à CLAUDE.md — tool use réel, architecture Rust, 3 sous-phases
+```
+
+### DÉCISIONS IMPORTANTES
+```
+- Les agents Ronako produisent du TEXTE uniquement (pas de fichiers binaires aujourd'hui)
+- Les connecteurs sont du contexte injecté dans les prompts, pas de vrais tool calls
+- Phase 8 = implémenter la boucle tool_use dans anthropic.rs
+  → Claude émet tool_use → Rust exécute → tool_result → Claude continue
+- Ordre : 8A images (DALL-E/Flux) → 8B code E2B (vrais .xlsx/.pptx) → 8C Notion/GitHub
+```
+
+### FICHIERS MODIFIÉS
+```
+src/lib/formatRequirements.ts           (créé)
+src/lib/formatSelector.ts               (alwaysIncluded retiré)
+src/lib/customDeliverableAnalyzer.ts    (créé — 18 règles + inferFormatsFromBrief)
+src/hooks/useCustomDeliverableAnalysis.ts (créé — analyse Haiku)
+src/components/workspace/ChainProposalCard.tsx (formats libres + analyse hybride)
+src/screens/Workspace.tsx               (hasFolder passé)
+CLAUDE.md                               (Phase 8 détaillée)
+```
+
+### ÉTAT ACTUEL
+Phase 7 + correctifs ChainProposalCard livrés. Phase 8 documentée dans CLAUDE.md.
+
+### PROCHAINE SESSION
+Phase 8A — Tool use images : DALL-E / Flux dans la boucle Rust.
+Ou Phase 7 G-H si on finit d'abord (Marcus proactif 7.7, ChainProposalCard 7.8, thèmes 7.12...).
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```
