@@ -70,6 +70,11 @@ const KNOWN_CONNECTOR_IDS = [
   "sendgrid", "resend", "mailchimp", "twilio",
   "stripe", "hubspot", "salesforce", "pipedrive",
   "ga4", "mixpanel", "plausible",
+  // Phase 10 — 15 nouveaux connecteurs
+  "fal", "gemini", "ideogram",
+  "perplexity", "deepgram",
+  "openai_tts", "twilio_sms",
+  "maps", "weather", "hunter", "groq",
 ];
 
 export const useConnectorStore = create<ConnectorStore>()(

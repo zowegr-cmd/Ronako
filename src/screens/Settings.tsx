@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Eye, EyeOff, Shield, Volume2, VolumeX, CreditCard,
-  Info, Trash2, Check, RotateCcw, Plug, Key,
+  Info, Trash2, Check, RotateCcw, Plug, Key, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -274,6 +274,31 @@ export function Settings() {
           </Button>
         </Section>
 
+        {/* ── Clés avancées ──────────────────────────────────────────── */}
+        <Section title="Clés API avancées" icon={<Key size={14} />}>
+          <p className="text-[10px] text-silk/40 mb-3">
+            Configure ici les clés pour les connecteurs supplémentaires.
+            Toutes stockées dans le trousseau OS — jamais en texte clair.
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { id: "fal", label: "fal.ai", placeholder: "fal_...", url: "https://fal.ai/dashboard/keys" },
+              { id: "gemini", label: "Google Gemini", placeholder: "AIza...", url: "https://aistudio.google.com/app/apikey" },
+              { id: "ideogram", label: "Ideogram", placeholder: "idg_...", url: "https://ideogram.ai/manage-api" },
+              { id: "serper", label: "Serper.dev", placeholder: "...", url: "https://serper.dev/api-key" },
+              { id: "perplexity", label: "Perplexity AI", placeholder: "pplx-...", url: "https://www.perplexity.ai/settings/api" },
+              { id: "deepgram", label: "Deepgram", placeholder: "...", url: "https://console.deepgram.com" },
+              { id: "groq", label: "Groq", placeholder: "gsk_...", url: "https://console.groq.com/keys" },
+              { id: "maps", label: "Google Maps API", placeholder: "AIza...", url: "https://console.cloud.google.com" },
+              { id: "weather", label: "OpenWeatherMap", placeholder: "...", url: "https://openweathermap.org/api_keys" },
+              { id: "hunter", label: "Hunter.io", placeholder: "...", url: "https://hunter.io/api_keys" },
+              { id: "twilio", label: "Twilio SID:Token", placeholder: "ACxxx:token", url: "https://console.twilio.com" },
+            ].map(({ id, label, placeholder, url }) => (
+              <SimpleKeyField key={id} id={id} label={label} placeholder={placeholder} docsUrl={url} />
+            ))}
+          </div>
+        </Section>
+
         {/* ── À propos ──────────────────────────────────────────────── */}
         <Section title="À propos" icon={<Info size={14} />}>
           <div className="flex flex-col gap-1.5">
@@ -284,6 +309,42 @@ export function Settings() {
         </Section>
 
       </div>
+    </div>
+  );
+}
+
+function SimpleKeyField({ id, label, placeholder, docsUrl }: {
+  id: string; label: string; placeholder: string; docsUrl?: string;
+}) {
+  const { getKey, setKey } = useConnectorStore();
+  const [keyInput, setKeyInput] = useState(getKey(id));
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const hasKey = !!getKey(id);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try { await setKey(id, keyInput.trim()); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-silk/50 w-28 shrink-0">{label}</span>
+      <div className="flex-1 relative">
+        <input type={showKey ? "text" : "password"} value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void handleSave()}
+          placeholder={placeholder}
+          className="w-full bg-graphite-light border border-crystal rounded-lg px-2.5 pr-7 py-1.5 text-xs text-silk font-mono placeholder-silk/20 focus:outline-none focus:border-electric/50" />
+        <button onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-silk/20 hover:text-silk/50">
+          {showKey ? <EyeOff size={10} /> : <Eye size={10} />}
+        </button>
+      </div>
+      <button onClick={() => void handleSave()} disabled={!keyInput.trim() || saving}
+        className="h-7 px-2 rounded-lg text-[10px] font-medium bg-electric/10 text-electric/80 hover:bg-electric/20 disabled:opacity-40">
+        {saving ? "…" : hasKey ? <Check size={10} /> : "Sauver"}
+      </button>
+      {docsUrl && <a href={docsUrl} target="_blank" rel="noreferrer" className="text-silk/20 hover:text-silk/50"><ExternalLink size={10} /></a>}
     </div>
   );
 }

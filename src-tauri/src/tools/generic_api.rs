@@ -34,6 +34,14 @@ static API_REGISTRY: &[(&str, &str, &str)] = &[
     ("ga4",         "https://analyticsdata.googleapis.com","bearer"),
     ("mixpanel",    "https://api.mixpanel.com",            "bearer"),
     ("plausible",   "https://plausible.io/api/v1",         "bearer"),
+    // ── Nouveaux connecteurs Phase 10 ─────────────────────────────────────────
+    ("perplexity",  "https://api.perplexity.ai",           "bearer"),
+    ("deepgram",    "https://api.deepgram.com/v1",         "header:Authorization:Token"),
+    ("maps",        "https://maps.googleapis.com/maps/api","none"),
+    ("weather",     "https://api.openweathermap.org/data/2.5","none"),
+    ("hunter",      "https://api.hunter.io/v2",            "none"),
+    ("groq",        "https://api.groq.com/openai/v1",      "bearer"),
+    ("twilio_sms",  "https://api.twilio.com/2010-04-01",   "basic"),
 ];
 
 fn find_registry(api_id: &str) -> Option<(&'static str, &'static str, &'static str)> {

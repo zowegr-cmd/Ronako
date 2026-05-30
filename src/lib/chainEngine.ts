@@ -279,14 +279,85 @@ const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
   tavily: {
     name: "web_search",
     description: "Effectue une recherche web en temps réel via Tavily. Utilise pour obtenir des informations actuelles ou vérifier des données.",
-    input_schema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Requête de recherche" },
-        max_results: { type: "integer", description: "Nombre maximum de résultats (défaut: 5)" },
-      },
-      required: ["query"],
-    },
+    input_schema: { type: "object", properties: { query: { type: "string", description: "Requête de recherche" }, max_results: { type: "integer" } }, required: ["query"] },
+  },
+
+  // ── 15 nouveaux connecteurs Phase 10 ──────────────────────────────────────
+
+  fal: {
+    name: "generate_image_fal",
+    description: "Génère une image via fal.ai (Nano Banana 2, Ideogram v3, Flux Pro). Rapide et varié.",
+    input_schema: { type: "object", properties: { model_id: { type: "string", description: "ID du modèle (ex: fal-ai/nano-banana-2, fal-ai/flux-pro/v1.1)" }, prompt: { type: "string", description: "Description de l'image en anglais" }, aspect_ratio: { type: "string", enum: ["1:1", "16:9", "9:16", "4:3"], description: "Format" }, num_images: { type: "integer", description: "Nombre d'images (1-4)" } }, required: ["prompt"] },
+  },
+  "fal-video": {
+    name: "generate_video_fal",
+    description: "Génère une vidéo via fal.ai (HappyHorse, Kling, Veo). Texte ou image vers vidéo.",
+    input_schema: { type: "object", properties: { model_id: { type: "string", description: "ex: alibaba/happy-horse/text-to-video, fal-ai/kling-video/v2.1" }, prompt: { type: "string", description: "Description de la vidéo" }, image_url: { type: "string", description: "URL d'une image source (image-to-video)" }, duration: { type: "integer", description: "Durée en secondes (5-15)" } }, required: ["prompt"] },
+  },
+  gemini: {
+    name: "generate_image_gemini",
+    description: "Génère une image avec Google Gemini Flash. Multimodal Google.",
+    input_schema: { type: "object", properties: { prompt: { type: "string", description: "Description de l'image" }, model: { type: "string", description: "Modèle Gemini (défaut: gemini-3.1-flash-image-preview)" } }, required: ["prompt"] },
+  },
+  ideogram: {
+    name: "generate_image_ideogram",
+    description: "Génère une image avec texte parfaitement lisible via Ideogram 3. Idéal pour logos et affiches.",
+    input_schema: { type: "object", properties: { prompt: { type: "string", description: "Description de l'image avec texte à intégrer" }, aspect_ratio: { type: "string", enum: ["ASPECT_1_1", "ASPECT_16_9", "ASPECT_9_16", "ASPECT_4_3"], description: "Format" }, model: { type: "string", description: "V_3 (défaut)" } }, required: ["prompt"] },
+  },
+  serper: {
+    name: "google_search",
+    description: "Recherche Google en temps réel via Serper.dev. Résultats récents et structurés.",
+    input_schema: { type: "object", properties: { query: { type: "string", description: "Requête Google" }, num_results: { type: "integer", description: "Nombre de résultats (défaut: 10)" }, country: { type: "string", description: "Code pays (ex: fr, us)" } }, required: ["query"] },
+  },
+  perplexity: {
+    name: "perplexity_search",
+    description: "Recherche web avec réponse synthétisée et citations de sources. Idéal pour la veille.",
+    input_schema: { type: "object", properties: { query: { type: "string", description: "Question ou sujet à rechercher" } }, required: ["query"] },
+  },
+  openai_tts: {
+    name: "text_to_speech_openai",
+    description: "Synthèse vocale haute qualité via OpenAI TTS. Génère un MP3. Voix: nova, alloy, echo, fable, onyx, shimmer.",
+    input_schema: { type: "object", properties: { text: { type: "string", description: "Texte à synthétiser (max 4096 chars)" }, voice: { type: "string", enum: ["nova", "alloy", "echo", "fable", "onyx", "shimmer"], description: "Voix" }, model: { type: "string", enum: ["tts-1", "tts-1-hd"], description: "Qualité" } }, required: ["text"] },
+  },
+  deepgram: {
+    name: "transcribe_audio_deepgram",
+    description: "Transcription audio ultra-rapide via Deepgram Nova 3. Plus précis que Whisper.",
+    input_schema: { type: "object", properties: { audio_url: { type: "string", description: "URL publique du fichier audio" }, language: { type: "string", description: "Code langue (ex: fr, en)" } }, required: ["audio_url"] },
+  },
+  resend: {
+    name: "send_email",
+    description: "Envoie un email transactionnel via Resend. HTML supporté.",
+    input_schema: { type: "object", properties: { to: { type: "string", description: "Email destinataire" }, subject: { type: "string", description: "Objet" }, html: { type: "string", description: "Corps HTML de l'email" }, from: { type: "string", description: "Expéditeur (défaut: noreply@resend.dev)" } }, required: ["to", "subject", "html"] },
+  },
+  twilio_sms: {
+    name: "send_sms",
+    description: "Envoie un SMS via Twilio. Notifications et alertes.",
+    input_schema: { type: "object", properties: { to: { type: "string", description: "Numéro destinataire (format E.164: +33...)" }, message: { type: "string", description: "Texte du SMS (max 160 chars)" } }, required: ["to", "message"] },
+  },
+  maps: {
+    name: "search_places",
+    description: "Recherche des lieux, commerces, adresses via Google Maps. Retourne noms, notes, horaires.",
+    input_schema: { type: "object", properties: { query: { type: "string", description: "Recherche (ex: restaurant paris 8)" }, location: { type: "string", description: "Zone géographique (optionnel)" } }, required: ["query"] },
+  },
+  weather: {
+    name: "get_weather",
+    description: "Météo en temps réel pour n'importe quelle ville (température, humidité, vent).",
+    input_schema: { type: "object", properties: { city: { type: "string", description: "Nom de la ville" }, country: { type: "string", description: "Code pays ISO (ex: fr, us)" } }, required: ["city"] },
+  },
+  hunter: {
+    name: "find_emails",
+    description: "Trouve les emails professionnels associés à un domaine via Hunter.io.",
+    input_schema: { type: "object", properties: { domain: { type: "string", description: "Nom de domaine (ex: company.com)" }, limit: { type: "integer", description: "Nombre max d'emails (défaut: 10)" } }, required: ["domain"] },
+  },
+  groq: {
+    name: "groq_completion",
+    description: "LLM ultra-rapide via Groq (Llama 3.3 70B). 10× plus rapide que Claude Haiku. Pour tâches rapides.",
+    input_schema: { type: "object", properties: { prompt: { type: "string", description: "Prompt utilisateur" }, model: { type: "string", enum: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"], description: "Modèle Groq" }, system: { type: "string", description: "Prompt système (optionnel)" } }, required: ["prompt"] },
+  },
+  firecrawl: {
+    name: "scrape_url",
+    description: "Scrape une URL et retourne le contenu en Markdown propre. Idéal pour analyser des pages web.",
+    input_schema: { type: "object", properties: { url: { type: "string", description: "URL à scraper" }, only_main_content: { type: "boolean", description: "Contenu principal uniquement (défaut: true)" } }, required: ["url"] },
   },
 };
 

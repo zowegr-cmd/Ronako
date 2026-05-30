@@ -5,6 +5,11 @@ pub mod notion;
 pub mod github;
 pub mod tavily;
 pub mod generic_api;
+pub mod fal;
+pub mod gemini;
+pub mod firecrawl;
+pub mod ideogram;
+pub mod tts;
 
 use serde_json::Value;
 
@@ -61,6 +66,15 @@ pub async fn execute_tool(
         "export_to_notion"     => notion::execute(tool_use_id, input, keys).await,
         "github_push"          => github::execute(tool_use_id, input, keys).await,
         "web_search"           => tavily::execute(tool_use_id, input, keys).await,
+
+        // ── Connecteurs avec implémentation Rust dédiée (nouveaux) ──────────────
+        "generate_image_fal"   => fal::execute_image(tool_use_id, input, keys).await,
+        "generate_video_fal"   => fal::execute_video(tool_use_id, input, keys).await,
+        "generate_image_gemini"=> gemini::execute_image(tool_use_id, input, keys).await,
+        "scrape_url"           => firecrawl::scrape(tool_use_id, input, keys).await,
+        "web_search_firecrawl" => firecrawl::search(tool_use_id, input, keys).await,
+        "generate_image_ideogram" => ideogram::execute(tool_use_id, input, keys).await,
+        "text_to_speech_openai"=> tts::execute(tool_use_id, input, keys).await,
 
         // ── APIs génériques : api_{id} → HTTP call avec la clé correspondante ─
         name if name.starts_with("api_") => {

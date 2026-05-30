@@ -21,7 +21,10 @@ export type ApiCategory =
   | "dev"
   | "communication"
   | "business"
-  | "analytics";
+  | "analytics"
+  | "audio"
+  | "llm"
+  | "data";
 
 export const CATEGORY_META: Record<ApiCategory, { label: string; icon: string; color: string }> = {
   generation:    { label: "Génération IA",    icon: "🎨", color: "text-pink-400" },
@@ -31,6 +34,9 @@ export const CATEGORY_META: Record<ApiCategory, { label: string; icon: string; c
   communication: { label: "Communication",     icon: "📧", color: "text-yellow-400" },
   business:      { label: "Business & CRM",    icon: "💳", color: "text-orange-400" },
   analytics:     { label: "Analytics",         icon: "📊", color: "text-cyan-400" },
+  audio:         { label: "Audio & Voix",      icon: "🔊", color: "text-green-400" },
+  llm:           { label: "LLM Alternatifs",   icon: "🤖", color: "text-violet-400" },
+  data:          { label: "Données & Lieux",   icon: "🗺️", color: "text-teal-400" },
 };
 
 export const API_CATALOG: ApiEntry[] = [
@@ -421,6 +427,33 @@ export const API_CATALOG: ApiEntry[] = [
     docsUrl: "https://plausible.io/docs/stats-api",
     hasToolDef: true,
   },
+
+  // ── 15 nouveaux connecteurs Phase 10 ──────────────────────────────────────
+
+  // Génération IA
+  { id: "fal", name: "fal.ai", description: "Images (Nano Banana, Flux) et vidéos (Kling, Veo) via API queue.", icon: "⚡", category: "generation", pricing: "$0.05/img · $0.14/s", keyField: "fal", docsUrl: "https://fal.ai/docs", hasToolDef: true },
+  { id: "gemini", name: "Google Gemini", description: "Génération d'images via Gemini Flash. Modèle Google multimodal.", icon: "✨", category: "generation", pricing: "Gratuit (quota)", keyField: "gemini", docsUrl: "https://ai.google.dev/docs", hasToolDef: true },
+  { id: "ideogram", name: "Ideogram 3", description: "Images avec texte parfait. Idéal pour logos et affiches.", icon: "🔤", category: "generation", pricing: "$0.04/img", keyField: "ideogram", docsUrl: "https://ideogram.ai/docs", hasToolDef: true },
+
+  // Recherche
+  { id: "serper", name: "Serper.dev", description: "API Google Search. Résultats Google en temps réel.", icon: "🔎", category: "search", pricing: "$0.001/req", keyField: "serper", docsUrl: "https://serper.dev", hasToolDef: true },
+  { id: "perplexity", name: "Perplexity AI", description: "Recherche web avec citations et sources. LLM + web.", icon: "🧠", category: "search", pricing: "$5/mois (Pro)", keyField: "perplexity", docsUrl: "https://docs.perplexity.ai", hasToolDef: true },
+
+  // Audio
+  { id: "openai_tts", name: "OpenAI TTS", description: "Synthèse vocale haute qualité (nova, alloy, onyx). Utilise la clé OpenAI.", icon: "🗣️", category: "audio", pricing: "$0.015/1k chars", keyField: "openai", docsUrl: "https://platform.openai.com/docs/guides/text-to-speech", hasToolDef: true },
+  { id: "deepgram", name: "Deepgram", description: "Transcription audio ultra-rapide via Nova 3. Meilleure précision.", icon: "📝", category: "audio", pricing: "$0.004/min", keyField: "deepgram", docsUrl: "https://developers.deepgram.com", hasToolDef: true },
+
+  // Communication
+  { id: "resend", name: "Resend", description: "API email moderne pour devs. 3000 emails/mois gratuits.", icon: "✉️", category: "communication", pricing: "Gratuit / $20/mois", keyField: "resend", docsUrl: "https://resend.com/docs", hasToolDef: true },
+  { id: "twilio_sms", name: "Twilio SMS", description: "Envoi de SMS depuis les agents. Notifications et alertes.", icon: "📱", category: "communication", pricing: "$0.008/SMS", keyField: "twilio", docsUrl: "https://www.twilio.com/docs", hasToolDef: true },
+
+  // Données
+  { id: "maps", name: "Google Maps", description: "Recherche de lieux, coordonnées, avis et infos business.", icon: "🗺️", category: "data", pricing: "$5/1k req", keyField: "maps", docsUrl: "https://developers.google.com/maps", hasToolDef: true },
+  { id: "weather", name: "OpenWeatherMap", description: "Météo en temps réel pour n'importe quelle ville du monde.", icon: "🌤️", category: "data", pricing: "Gratuit / $40/mois", keyField: "weather", docsUrl: "https://openweathermap.org/api", hasToolDef: true },
+  { id: "hunter", name: "Hunter.io", description: "Trouve des emails professionnels par domaine. Prospection.", icon: "🎯", category: "data", pricing: "25 req/mois gratuit", keyField: "hunter", docsUrl: "https://hunter.io/api-documentation", hasToolDef: true },
+
+  // LLM
+  { id: "groq", name: "Groq", description: "LLM ultra-rapide (Llama 3.3 70B). 10× plus rapide que Claude.", icon: "⚡", category: "llm", pricing: "Gratuit (quota)", keyField: "groq", docsUrl: "https://console.groq.com/docs", hasToolDef: true },
 ];
 
 export function getApisByCategory(category: ApiCategory): ApiEntry[] {
