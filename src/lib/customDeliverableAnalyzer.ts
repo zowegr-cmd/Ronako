@@ -36,27 +36,24 @@ const RULES: Rule[] = [
   {
     pattern: /word|docx|\.doc\b|document.*word/i,
     insight: {
-      message: "💡 Pour un .docx, le connecteur E2B peut exécuter python-docx via un script Python.",
+      message: "💡 Option simple : Ella rédige en Markdown propre — tu colles dans Word ou Google Docs (importation directe). Option technique : E2B + python-docx pour un .docx formaté automatiquement.",
       blocking: false,
-      connectorIds: ["e2b"],
-      agentHint: "sam",
+      agentHint: "ella",
     },
   },
   {
-    pattern: /power\s*point|pptx|présentation.*slide|slide.*deck/i,
+    pattern: /power\s*point|pptx|présentation.*slide|slide.*deck|slides?\b/i,
     insight: {
-      message: "💡 Pour un .pptx, python-pptx via E2B sandbox peut générer des slides structurées.",
+      message: "💡 Option simple (sans connecteur) : Sam rédige en format Marp — du Markdown avec séparateurs --- que tu ouvres dans VS Code (extension Marp gratuite) et exportes en .pptx en 1 clic.\n\nOption avancée : Gamma.app API génère de belles présentations directement depuis du texte structuré.",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "sam",
     },
   },
   {
     pattern: /pdf\b/i,
     insight: {
-      message: "💡 Pour un vrai PDF, E2B peut exécuter WeasyPrint ou reportlab. Sinon, Ella génère du HTML que tu peux imprimer en PDF.",
+      message: "💡 Option simple : Ella produit du HTML mis en page — tu l'imprimes en PDF depuis le navigateur (Ctrl+P → Enregistrer en PDF).\n\nOption code : E2B peut exécuter WeasyPrint pour un PDF avec styles précis.",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "ella",
     },
   },

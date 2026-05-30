@@ -13,15 +13,15 @@ interface AnalysisContext {
 }
 
 const SYSTEM_PROMPT = `Tu es Marcus, Chef d'Orchestre. L'utilisateur veut un livrable spécifique.
-Analyse ce livrable et retourne UNIQUEMENT ce JSON (sans texte autour) :
+Analyse et retourne UNIQUEMENT ce JSON (sans texte autour) :
 {
-  "tip": "Conseil court en français (1-2 phrases max) sur comment produire ce livrable",
-  "suggestedSkills": ["skill-id-si-pertinent"],
-  "suggestedConnectors": ["connector-id-si-pertinent"],
-  "agentHint": "nom-agent-le-plus-adapté-ou-null",
+  "tip": "Conseil en français (2-3 phrases). Priorité : solution simple sans connecteur si possible (Markdown, HTML, Marp pour slides, etc.), puis connecteur si indispensable. Mentionne l'agent le plus adapté.",
+  "suggestedSkills": ["skill-id-si-vraiment-pertinent"],
+  "suggestedConnectors": ["connector-id-seulement-si-indispensable"],
+  "agentHint": "id-agent-le-plus-adapté",
   "blocking": false
 }
-Ne mets rien en dehors du JSON. Si aucun skill/connecteur n'est utile, mets des tableaux vides.`;
+Règle : ne suggère un connecteur que s'il est RÉELLEMENT nécessaire. Pour la majorité des livrables texte/structurés, les agents suffisent sans connecteur.`;
 
 function buildUserMessage(text: string, ctx: AnalysisContext): string {
   const skillList = ctx.availableSkills.length > 0
