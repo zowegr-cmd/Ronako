@@ -47,6 +47,9 @@ interface AgentStore {
   removeSkillFromPack: (packId: string, skillId: string) => void;
   uninstallCustomPack: (packId: string) => void;
   updateSkillScore: (skillId: string, scoreDelta: number) => void;
+  // Migration one-shot : connecteurs par défaut pour agents système
+  hasAppliedDefaultConnectors: boolean;
+  applyDefaultConnectors: () => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -57,6 +60,7 @@ export const useAgentStore = create<AgentStore>()(
       skills: [],
       consultants: CONSULTANT_AGENTS,
       customPacks: [],
+      hasAppliedDefaultConnectors: false,
 
       // ── Agents principaux ───────────────────────────────────────
       addAgent: (data) => {
@@ -209,6 +213,32 @@ export const useAgentStore = create<AgentStore>()(
             return { ...sk, useCount: newCount, avgScoreImpact: Math.round(newAvg * 100) / 100 };
           }),
         })),
+      applyDefaultConnectors: () => {
+        if (get().hasAppliedDefaultConnectors) return;
+        // Connecteurs sensés par agent selon leur rôle
+        const DEFAULTS: Record<string, string[]> = {
+          marcus:  ["tavily"],
+          sofia:   ["tavily", "serper"],
+          omar:    ["tavily"],
+          axel:    ["openai", "bfl"],
+          leo:     ["sendgrid"],
+          nina:    ["github", "e2b"],
+          sam:     ["github", "e2b"],
+          tom:     ["e2b"],
+          ella:    ["notion"],
+          // camille, maya, ryo : pas de connecteur par défaut
+        };
+        set((s) => ({
+          hasAppliedDefaultConnectors: true,
+          agents: s.agents.map((a) => {
+            const defaults = DEFAULTS[a.id];
+            if (!defaults) return a;
+            // Seulement si l'agent n'a encore aucun connecteur assigné
+            if (a.connectors && a.connectors.length > 0) return a;
+            return { ...a, connectors: defaults };
+          }),
+        }));
+      },
       addSkillToPack: (packId, skill) =>
         set((s) => ({
           customPacks: s.customPacks.map((p) => {

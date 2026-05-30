@@ -48,9 +48,10 @@ export interface ChainContext {
   folderContext?: string;
   projectDNA?: string;
   relayContext?: string;
-  agentSkills?: Skill[];         // skills actifs pour cet agent
-  universalSkills?: Skill[];     // skills universels Marcus (inheritToAll)
-  deliverableLanguage?: string;  // 7.15 — langue des livrables
+  agentSkills?: Skill[];
+  universalSkills?: Skill[];
+  deliverableLanguage?: string;
+  activeToolNames?: string[];    // Phase 8 — noms des outils disponibles pour cet agent
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -115,9 +116,13 @@ export function buildAgentPrompt(
   const injectFiles = (isFirst || agent.tools.includes("file_read")) && context.folderContext;
   const fileBlock = injectFiles ? `${context.folderContext}\n\n` : "";
 
+  // ── Outils disponibles — informe l'agent de ses capacités ──────────────────
+  const toolsBlock = context.activeToolNames?.length
+    ? `[OUTILS DISPONIBLES]\n${context.activeToolNames.map((t) => `- ${t}`).join("\n")}\nUtilise ces outils quand c'est pertinent pour ta tâche.\n\n`
+    : "";
+
   if (isFirst) {
-    // Marcus : brief complet + état projet + dossier
-    return `${header}${langBlock}Projet : ${context.projectName}
+    return `${header}${langBlock}${toolsBlock}Projet : ${context.projectName}
 
 Brief :
 ${context.userBrief}
@@ -125,13 +130,11 @@ ${context.projectState ? `\nÉtat du projet :\n${context.projectState}\n` : ""}$
 Traite ce brief selon ton rôle et produis ton output.`;
   }
 
-  // Agents N+1 : ADN + Relay (jamais le brief complet)
-  // Si Relay n'a pas tourné (fallback) → output précédent complet
   const contextBlock = relayBlock || (previousOutput
     ? `[OUTPUT PRÉCÉDENT]\n${previousOutput}\n[/OUTPUT PRÉCÉDENT]\n\n`
     : "");
 
-  return `${header}${langBlock}${dnaBlock}${contextBlock}${fileBlock}Projet : ${context.projectName}
+  return `${header}${langBlock}${toolsBlock}${dnaBlock}${contextBlock}${fileBlock}Projet : ${context.projectName}
 
 Traite ce contexte selon ton rôle. Sois précis et actionnable.`;
 }

@@ -9,15 +9,18 @@ import { Settings } from "@/screens/Settings";
 import { PackManager } from "@/screens/PackManager";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useConnectorStore } from "@/store/connectorStore";
+import { useAgentStore } from "@/store/agentStore";
 
 export default function App() {
   const { loadApiKey, keyLoaded, checkMonthlyReset } = useSettingsStore();
   const { migrateFromSettings } = useConnectorStore();
+  const { applyDefaultConnectors } = useAgentStore();
 
   useEffect(() => {
     if (!keyLoaded) loadApiKey();
     checkMonthlyReset();
-    migrateFromSettings(); // migrer anciennes clés settingsStore → connectorStore
+    migrateFromSettings();       // clés settingsStore → connectorStore
+    applyDefaultConnectors();    // connecteurs par défaut sur les agents système
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -222,12 +222,17 @@ export function useChainRunner(teamId: string) {
         setAgentIndex(i);
         const agent = agentsWithMode[i];
 
-        // ── Web Search Tavily ─────────────────────────────────────
+        // ── Connecteurs de l'agent + définitions outils ───────────
+        const agentConnectorIdsEarly = agent.connectors ?? [];
+        const hasNewTavilyConnector = agentConnectorIdsEarly.includes("tavily") &&
+          (allConnectorKeys.tavily || connectorKeys.tavily);
+
+        // ── Web Search Tavily (ancien système) — skip si géré par tool use ─
         let searchContext: string | undefined;
-        const hasTavily = agent.tools.includes("web_search") &&
-          (!agent.connectors?.length || agent.connectors.includes("tavily")) &&
+        const hasTavilyLegacy = agent.tools.includes("web_search") &&
+          !hasNewTavilyConnector && // ne pas doubler
           connectorKeys.tavily;
-        if (hasTavily && connectorKeys.tavily) {
+        if (hasTavilyLegacy && connectorKeys.tavily) {
           try {
             addWorkspaceMessage({ role: "system", content: `🔍 ${agent.name} effectue une recherche web…`, agentId: agent.id });
             const results = await tavilySearch(`${agent.role}: ${userBrief.slice(0, 300)}`, connectorKeys.tavily);
@@ -235,19 +240,64 @@ export function useChainRunner(teamId: string) {
           } catch { /* silencieux */ }
         }
 
+        // ── Skills actifs + auto-activation par mots-clés ─────────
+        const agentSkills = getActiveSkillsForAgent(agent.id);
+        const briefLower = userBrief.toLowerCase();
+        const keywordActivated = skills.filter((sk) =>
+          !sk.isActive &&
+          !sk.isTemporary &&
+          sk.agentIds.includes(agent.id) &&
+          sk.triggerKeywords.some((kw) => kw.length > 2 && briefLower.includes(kw.toLowerCase())),
+        );
+        // Fusionner sans doublons
+        const allAgentSkills = [
+          ...agentSkills,
+          ...keywordActivated.filter((kk) => !agentSkills.some((s) => s.id === kk.id)),
+        ];
+        const universalSkills = skills.filter((s) => s.isActive && s.agentIds.includes("marcus") && s.inheritToAll);
+
+        // ── Tool definitions pour cet agent ───────────────────────
+        const extra: Record<string, string> = { ...allConnectorKeys };
+        if (connectorKeys.openai) extra.openai   = extra.openai   || connectorKeys.openai;
+        if (connectorKeys.bfl)    extra.bfl      = extra.bfl      || connectorKeys.bfl;
+        if (connectorKeys.e2b)    extra.e2b      = extra.e2b      || connectorKeys.e2b;
+        if (connectorKeys.notion) extra.notion   = extra.notion   || connectorKeys.notion;
+        if (connectorKeys.github) extra.github   = extra.github   || connectorKeys.github;
+        if (connectorKeys.tavily) extra.tavily   = extra.tavily   || connectorKeys.tavily;
+        for (const cc of customConnectors) {
+          extra[cc.keyField] = extra[cc.keyField] || "";
+          extra[`__cfg_${cc.id}`] = JSON.stringify(cc);
+        }
+        const toolKeyMap: ToolKeys = {
+          openai: extra.openai, bfl: extra.bfl, e2b: extra.e2b,
+          notion: extra.notion, github: extra.github, tavily: extra.tavily,
+          extra,
+        };
+        const agentTools = buildToolDefinitions(agentConnectorIdsEarly, toolKeyMap, customConnectors);
+        const useToolsApi = agentTools.length > 0;
+
+        // Noms lisibles pour injection dans le prompt
+        const toolLabels: Record<string, string> = {
+          generate_image_dalle: "DALL-E 3 (génération image haute qualité)",
+          generate_image_flux: "Flux (génération image rapide)",
+          execute_code: "E2B sandbox (exécution code Python/Node, génère fichiers)",
+          export_to_notion: "Notion (export de pages)",
+          github_push: "GitHub (commits, fichiers, PRs)",
+          web_search: "Tavily (recherche web temps réel)",
+        };
+        const activeToolNames = agentTools.map((t) => toolLabels[t.name] ?? t.name);
+
         // ── Construire le prompt ──────────────────────────────────
         const combinedFolderContext = [folderContext, searchContext].filter(Boolean).join("\n\n") || undefined;
-        // Collecter les skills actifs pour cet agent + universels Marcus
-        const agentSkills = getActiveSkillsForAgent(agent.id);
-        const universalSkills = skills.filter((s) => s.isActive && s.agentIds.includes("marcus") && s.inheritToAll);
 
         const prompt = buildAgentPrompt(
           agent,
           {
             projectName, userBrief, folderContext: combinedFolderContext,
             projectDNA: dna ?? undefined, relayContext,
-            agentSkills, universalSkills,
+            agentSkills: allAgentSkills, universalSkills,
             deliverableLanguage,
+            activeToolNames: activeToolNames.length > 0 ? activeToolNames : undefined,
           },
           previousOutput,
           i,
@@ -264,29 +314,7 @@ export function useChainRunner(teamId: string) {
             continue;
           }
 
-          // ── Phase 8 — Tool Use : router vers la bonne commande ───
-          const agentConnectorIds = agent.connectors ?? [];
-          // Toutes les clés : connectorStore (principale) + settingsStore (compat)
-          const extra: Record<string, string> = { ...allConnectorKeys };
-          // Ajouter les clés settingsStore pour compat backwards
-          if (connectorKeys.openai)     extra.openai   = extra.openai   || connectorKeys.openai;
-          if (connectorKeys.bfl)        extra.bfl      = extra.bfl      || connectorKeys.bfl;
-          if (connectorKeys.e2b)        extra.e2b      = extra.e2b      || connectorKeys.e2b;
-          if (connectorKeys.notion)     extra.notion   = extra.notion   || connectorKeys.notion;
-          if (connectorKeys.github)     extra.github   = extra.github   || connectorKeys.github;
-          if (connectorKeys.tavily)     extra.tavily   = extra.tavily   || connectorKeys.tavily;
-          // Injecter configs connecteurs custom (sérialisées en JSON pour Rust)
-          for (const cc of customConnectors) {
-            extra[cc.keyField] = extra[cc.keyField] || "";
-            extra[`__cfg_${cc.id}`] = JSON.stringify(cc);
-          }
-          const toolKeyMap: ToolKeys = {
-            openai: extra.openai, bfl: extra.bfl, e2b: extra.e2b,
-            notion: extra.notion, github: extra.github, tavily: extra.tavily,
-            extra,
-          };
-          const agentTools = buildToolDefinitions(agentConnectorIds, toolKeyMap, customConnectors);
-          const useToolsApi = agentTools.length > 0;
+          // agentTools, toolKeyMap, useToolsApi déjà calculés plus haut
 
           let inputTokens = estimateTokens(prompt);
           let outputTokens = 0;
