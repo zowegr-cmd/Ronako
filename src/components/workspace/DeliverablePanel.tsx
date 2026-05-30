@@ -52,6 +52,14 @@ export function DeliverablePanel() {
   const [visuals, setVisuals] = useState<GeneratedVisual[]>([]);
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
 
+  // Détecter l'output Forge (# RONAKO_FORGE) dans les messages
+  useEffect(() => {
+    const forgeMsg = run.messages.find(
+      (m) => m.agentId === "forge" && m.content.includes("# RONAKO_FORGE"),
+    );
+    if (forgeMsg) setView("files");
+  }, [run.messages]);
+
   // Écouter les résultats d'outils depuis useChainRunner
   useEffect(() => {
     const handler = (e: Event) => {

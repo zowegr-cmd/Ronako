@@ -53,6 +53,7 @@ export interface ChainContext {
   deliverableLanguage?: string;
   activeToolNames?: string[];    // Phase 8 — noms des outils disponibles pour cet agent
   teamCapabilities?: string;     // Phase 9 — capacités skills/outils de toute l'équipe
+  selectedFormats?: string[];    // Forge — formats de fichiers demandés
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -103,6 +104,13 @@ export function buildAgentPrompt(
     ? `[LANGUE DU LIVRABLE : ${LANGUAGE_LABELS[lang] ?? lang}]\nProduis ton output intégralement en ${LANGUAGE_LABELS[lang] ?? lang}. L'interface reste en français mais ton livrable doit être en ${LANGUAGE_LABELS[lang] ?? lang}.\n\n`
     : "";
 
+  // ── Bloc formats — injecté si formats fichiers demandés ──────────────────
+  const FILE_FORMAT_IDS = new Set(["pdf", "excel", "pptx", "word", "html_dashboard"]);
+  const fileFormats = (context.selectedFormats ?? []).filter((f) => FILE_FORMAT_IDS.has(f));
+  const formatsBlock = context.selectedFormats?.length
+    ? `[FORMAT(S) DEMANDÉ(S) : ${context.selectedFormats.join(", ")}]\n${fileFormats.length > 0 ? `Forge produira les fichiers : ${fileFormats.join(", ")}.\n` : ""}Adapte ton output en conséquence.\n\n`
+    : "";
+
   // ── Bloc ADN + capacités équipe ────────────────────────────────────────────
   const capBlock = context.teamCapabilities && !isFirst
     ? `\n${context.teamCapabilities}\n`
@@ -126,7 +134,7 @@ export function buildAgentPrompt(
     : "";
 
   if (isFirst) {
-    return `${header}${langBlock}${toolsBlock}Projet : ${context.projectName}
+    return `${header}${langBlock}${formatsBlock}${toolsBlock}Projet : ${context.projectName}
 
 Brief :
 ${context.userBrief}
@@ -138,7 +146,7 @@ Traite ce brief selon ton rôle et produis ton output.`;
     ? `[OUTPUT PRÉCÉDENT]\n${previousOutput}\n[/OUTPUT PRÉCÉDENT]\n\n`
     : "");
 
-  return `${header}${langBlock}${toolsBlock}${dnaBlock}${contextBlock}${fileBlock}Projet : ${context.projectName}
+  return `${header}${langBlock}${formatsBlock}${toolsBlock}${dnaBlock}${contextBlock}${fileBlock}Projet : ${context.projectName}
 
 Traite ce contexte selon ton rôle. Sois précis et actionnable.`;
 }

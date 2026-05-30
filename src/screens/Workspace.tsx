@@ -16,10 +16,12 @@ import { StopModal } from "@/components/workspace/StopModal";
 import { AgentFlowViz } from "@/components/workspace/AgentFlowViz";
 import { BudgetCounter } from "@/components/workspace/BudgetCounter";
 import { ChainProposalCard } from "@/components/workspace/ChainProposalCard";
+import { FormatSelectorModal } from "@/components/workspace/FormatSelectorModal";
 import { FolderContextBar } from "@/components/workspace/FolderContextBar";
 import { Button } from "@/components/ui/Button";
 import { TipBanner } from "@/components/ui/TipBanner";
 import { useTips } from "@/hooks/useTips";
+import { useConnectorStore } from "@/store/connectorStore";
 import { Badge } from "@/components/ui/Badge";
 import { useProjectStore } from "@/store/projectStore";
 import { useAgentStore } from "@/store/agentStore";
@@ -47,6 +49,8 @@ export function Workspace() {
   const [reworkEntry, setReworkEntry] = useState<import("@/types").DeliverableEntry | null>(null);
   const [showStopModal, setShowStopModal] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showFormatModal, setShowFormatModal] = useState(false);
+  const [e2bBannerDismissed, setE2bBannerDismissed] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(true);
   const { getActiveProject, updateProject } = useProjectStore();
   const { getTeamAgents, teams, getTeam } = useAgentStore();
@@ -71,6 +75,8 @@ export function Workspace() {
     pausedAgentMessage, chainMode,
   } = useChainStore();
   const { hasValidApiKey } = useSettingsStore();
+  const { getKey, keys: connectorKeys2 } = useConnectorStore();
+  const hasE2B = !!(getKey("e2b") || connectorKeys2.e2b);
   const project = getActiveProject();
   const teamId = project?.teamId ?? "alpha";
   const team = getTeam(teamId);
@@ -197,6 +203,11 @@ export function Workspace() {
   const handleRequestPlan = async () => {
     if (isRunning || proposalLoading) return;
     setProposal(null);
+    setShowFormatModal(true); // Toujours montrer le modal de format d'abord
+  };
+
+  const handleFormatConfirmed = async () => {
+    setShowFormatModal(false);
     await buildPlan();
   };
 
@@ -580,6 +591,33 @@ export function Workspace() {
 
       {/* Tips contextuels (7.13) */}
       <TipBanner tip={activeTip} onDismiss={dismissTip} />
+
+      {/* Popup sélection format (Forge) */}
+      <FormatSelectorModal
+        open={showFormatModal}
+        hasFolder={hasFolder}
+        onConfirm={() => void handleFormatConfirmed()}
+        onSkip={() => { setShowFormatModal(false); void buildPlan(); }}
+      />
+
+      {/* Bannière E2B manquante */}
+      <AnimatePresence>
+        {!hasE2B && !e2bBannerDismissed && !isRunning && workspaceMessages.length > 2 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-graphite border border-warning/30 rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3 max-w-md">
+            <span className="text-warning text-lg shrink-0">⚡</span>
+            <p className="text-xs text-silk/70 flex-1">Sans E2B, Forge ne peut produire que du texte. Configure E2B en 2 min pour débloquer PDF, Excel, PowerPoint.</p>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => document.dispatchEvent(new CustomEvent("navigate-packs"))}
+                className="text-[10px] text-electric/70 hover:text-electric border border-electric/30 rounded-lg px-2 py-1">
+                Configurer →
+              </button>
+              <button onClick={() => setE2bBannerDismissed(true)}
+                className="text-[10px] text-silk/25 hover:text-silk/50">✕</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

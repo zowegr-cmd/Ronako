@@ -34,6 +34,7 @@ pub fn run() {
             folder::read_project_folder,
             commands::tavily_search,
             commands::http_custom_call,
+            commands::open_html_in_browser,
             // Bibliothèque livrables
             commands::save_deliverable,
             commands::list_deliverables,

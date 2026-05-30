@@ -201,6 +201,40 @@ pub async fn tavily_search(query: String, api_key: String) -> Result<String, Str
     response.text().await.map_err(|e| e.to_string())
 }
 
+// ─── Ouvrir HTML dans le navigateur ──────────────────────────────────────────
+
+#[tauri::command]
+pub async fn open_html_in_browser(html_content: String) -> Result<(), String> {
+    let temp_dir = std::env::temp_dir();
+    let filename = format!("ronako-{}.html", chrono::Utc::now().timestamp_millis());
+    let path = temp_dir.join(filename);
+    std::fs::write(&path, html_content.as_bytes()).map_err(|e| e.to_string())?;
+
+    // Ouvrir avec le navigateur par défaut
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", &path.to_string_lossy()])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 // ─── Connecteur HTTP custom (Phase 9) ────────────────────────────────────────
 
 #[tauri::command]

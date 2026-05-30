@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   Eye, EyeOff, Shield, Volume2, VolumeX, CreditCard,
-  Info, Trash2, Check, RotateCcw, Plug,
+  Info, Trash2, Check, RotateCcw, Plug, Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -11,6 +11,8 @@ import { Slider } from "@/components/ui/Slider";
 import { Badge } from "@/components/ui/Badge";
 import { MODEL_LABELS, MODEL_COST_RATES, type ModelId } from "@/types";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useConnectorStore } from "@/store/connectorStore";
+import { useToastStore } from "@/store/toastStore";
 import { formatCost } from "@/lib/utils";
 import type { MarcusPersona, AppTheme, ExpertiseLevel, DeliverableLanguage } from "@/store/settingsStore";
 
@@ -63,6 +65,9 @@ export function Settings() {
       </div>
 
       <div className="p-5 flex flex-col gap-4 max-w-xl">
+
+        {/* ══ Clés essentielles ══════════════════════════════════════════ */}
+        <E2BEssentialSection />
 
         {/* ── Clé API Anthropic ─────────────────────────────────────── */}
         <Section title="Clé API Anthropic" icon={<Shield size={14} />}>
@@ -278,6 +283,70 @@ export function Settings() {
           </div>
         </Section>
 
+      </div>
+    </div>
+  );
+}
+
+function E2BEssentialSection() {
+  const { getKey, setKey } = useConnectorStore();
+  const [keyInput, setKeyInput] = useState(getKey("e2b"));
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const hasE2B = !!getKey("e2b");
+  const toast = useToastStore();
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await setKey("e2b", keyInput.trim());
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+      toast.success("E2B configuré", "Forge peut maintenant générer des fichiers");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-electric/5 border border-electric/20 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-electric/10">
+        <span className="text-electric text-base">⚡</span>
+        <p className="text-xs font-semibold text-electric/80 uppercase tracking-wider">Clé essentielle pour Forge</p>
+      </div>
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <div className="text-2xl">🖥️</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-sm font-semibold text-silk">E2B Sandbox</p>
+              {hasE2B
+                ? <Badge variant="success" className="text-[9px]">✓ Configuré — Forge opérationnel</Badge>
+                : <Badge variant="warning" className="text-[9px]">⚠️ Non configuré</Badge>}
+            </div>
+            <p className="text-[11px] text-silk/50 leading-relaxed">
+              {hasE2B
+                ? "Forge peut générer de vrais fichiers PDF, Excel, PowerPoint, Word."
+                : "Sans E2B, Forge ne produit que du texte. Configure-le en 2 min pour débloquer la production de vrais fichiers."}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input type={showKey ? "text" : "password"} value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              placeholder="e2b_sk_…"
+              className="w-full bg-graphite-light border border-crystal rounded-xl px-3 pr-8 py-2 text-xs text-silk font-mono placeholder-silk/25 focus:outline-none focus:border-electric/50" />
+            <button onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-silk/25 hover:text-silk/60">
+              {showKey ? <EyeOff size={12} /> : <Eye size={12} />}
+            </button>
+          </div>
+          <Button variant="primary" size="sm" loading={saving} disabled={!keyInput.trim()} onClick={handleSave}>
+            {saved ? <><Check size={11} /> Sauvé</> : <><Key size={11} /> Sauver</>}
+          </Button>
+        </div>
+        <p className="text-[10px] text-silk/30">
+          Obtenir gratuitement → <a href="https://e2b.dev" target="_blank" rel="noreferrer"
+            className="text-electric/60 hover:text-electric">e2b.dev</a>
+        </p>
       </div>
     </div>
   );

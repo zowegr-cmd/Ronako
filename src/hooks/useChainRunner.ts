@@ -89,7 +89,7 @@ import { saveDeliverable } from "@/lib/libraryManager";
 import { sendNotification, isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { useAnthropicStream } from "./useAnthropicStream";
 import { useSounds } from "./useSounds";
-import { RELAY_AGENT } from "@/lib/agents/defaultTeam";
+import { RELAY_AGENT, FORGE_AGENT } from "@/lib/agents/defaultTeam";
 import { tavilySearch, formatTavilyForPrompt } from "@/lib/connectors/tavily";
 import type { Agent } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
@@ -108,6 +108,7 @@ export function useChainRunner(teamId: string) {
     setLastDeliverableContent,
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
+  const { selectedFormats } = useChainStore();
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
   const { keys: allConnectorKeys, customConnectors, mcpStates } = useConnectorStore();
   const toast = useToastStore();
@@ -234,6 +235,21 @@ export function useChainRunner(teamId: string) {
       const agents = baseAgentIds
         .map((id) => allTeamAgents.find((a) => a.id === id))
         .filter(Boolean) as Agent[];
+
+      // ── Injecter Forge automatiquement si formats fichiers demandés ──────
+      const FILE_FORMAT_IDS = new Set(["pdf", "excel", "pptx", "word"]);
+      const needsForge = selectedFormats.some((f) => FILE_FORMAT_IDS.has(f));
+      const alreadyHasForge = agents.some((a) => a.id === "forge");
+      if (needsForge && !alreadyHasForge) {
+        // Insérer Forge après Sam (ou en fin de chaîne si Sam absent)
+        const samIndex = agents.findIndex((a) => a.id === "sam");
+        if (samIndex >= 0) {
+          agents.splice(samIndex + 1, 0, FORGE_AGENT);
+        } else {
+          agents.push(FORGE_AGENT);
+        }
+        addWorkspaceMessage({ role: "system", content: "⚙️ **Forge** ajouté automatiquement — produira les fichiers demandés (PDF/Excel/PPT/Word)" });
+      }
 
       // Appliquer les overrides de modèle selon le mode
       const agentsWithMode: Agent[] = agents.map((a) => ({
@@ -398,6 +414,7 @@ export function useChainRunner(teamId: string) {
             deliverableLanguage,
             activeToolNames: activeToolNames.length > 0 ? activeToolNames : undefined,
             teamCapabilities: teamCapabilities || undefined,
+            selectedFormats: selectedFormats.length > 0 ? selectedFormats : undefined,
           },
           previousOutput,
           i,

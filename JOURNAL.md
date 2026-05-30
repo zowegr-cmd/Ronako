@@ -522,6 +522,90 @@ Ou Phase 9 selon roadmap.
 
 ---
 
+## SESSION 2026-05-30 — Forge + Sam JSON + Skills Production + FormatSelectorModal
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ FORGE_AGENT ajouté dans defaultTeam.ts (après les agents système)
+   - Agent système non supprimable, pauseAfter: true
+   - connectors: ["e2b"] obligatoire
+   - System prompt : génère code Python + appelle execute_code tool
+
+✅ Sam repensé (3 modes) :
+   - MODE 1 JSON structuré : si PDF/Excel/PPT/Word demandés → JSON complet
+   - MODE 2 Super-prompt Claude Code : comportement actuel
+   - MODE 3 HTML complet : dashboard autonome plotly
+
+✅ FORGE_PRODUCTION_PACK dans skillPacks.ts (5 skills) :
+   - forge-pdf-weasyprint : PDF via WeasyPrint ⭐7800+
+   - forge-excel-openpyxl : Excel pro via openpyxl
+   - forge-pptx-consulting : PowerPoint style BCG/McKinsey
+   - forge-word-docx : Word via python-docx ⭐4400+
+   - forge-html-dashboard : HTML interactif plotly.js
+
+✅ chainEngine.ts :
+   - ChainContext.selectedFormats ajouté
+   - formatsBlock injecté dans les prompts (avant ADN)
+
+✅ useChainRunner.ts :
+   - FORGE_AGENT auto-injecté après Sam si PDF/Excel/PPT/Word sélectionnés
+   - selectedFormats passé dans ChainContext
+   - Message système quand Forge ajouté
+
+✅ FormatSelectorModal.tsx (nouveau composant)
+   - Déclenché avant buildPlan()
+   - 9 formats en 3 catégories (Fichiers, Web, Contenu)
+   - Warning E2B si format fichier coché
+   - Défaut intelligent selon contexte (dossier → CC, sinon Markdown)
+
+✅ Workspace.tsx :
+   - handleRequestPlan → showFormatModal = true
+   - handleFormatConfirmed → buildPlan()
+   - Bannière E2B si non configuré
+
+✅ DeliverablePanel.tsx :
+   - Bascule vers onglet Fichiers si output contient # RONAKO_FORGE
+
+✅ commands.rs : open_html_in_browser (Windows/macOS/Linux)
+✅ Settings.tsx : section E2BEssentialSection en haut
+✅ agentStore.ts : forge → e2b dans applyDefaultConnectors
+✅ TypeScript 0 erreurs + Rust 0 warnings
+```
+
+### FICHIERS MODIFIÉS
+```
+src/lib/agents/defaultTeam.ts   (FORGE_AGENT + Sam 3 modes + SYSTEM_AGENT_IDS)
+src/lib/skillPacks.ts           (FORGE_PRODUCTION_PACK — 5 skills)
+src/lib/chainEngine.ts          (selectedFormats + formatsBlock)
+src/hooks/useChainRunner.ts     (Forge auto-inject + selectedFormats context)
+src/components/workspace/FormatSelectorModal.tsx  (créé)
+src/screens/Workspace.tsx       (modal + bannière E2B)
+src/components/workspace/DeliverablePanel.tsx     (détection RONAKO_FORGE)
+src-tauri/src/commands.rs       (open_html_in_browser)
+src-tauri/src/lib.rs            (register command)
+src/screens/Settings.tsx        (E2BEssentialSection)
+src/store/agentStore.ts         (forge → e2b defaults)
+```
+
+### FLUX COMPLET
+```
+1. Brief → "Lancer la chaîne" → FormatSelectorModal
+2. User sélectionne formats (PDF, Excel, etc.)
+3. Formats → selectedFormats chainStore
+4. buildPlan() → ChainProposalCard
+5. Si formats fichiers → FORGE_AGENT auto-ajouté après Sam
+6. Chaîne tourne → formatsBlock injecté dans chaque prompt
+7. Sam détecte formats → sort JSON structuré (pas texte)
+8. Forge reçoit JSON → appelle execute_code (E2B)
+9. E2B exécute Python → fichiers générés
+10. DeliverablePanel onglet Fichiers → téléchargement
+```
+
+### ÉTAT ACTUEL
+Forge opérationnel. TS 0 erreur, Rust 0 warning.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

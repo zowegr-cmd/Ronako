@@ -226,6 +226,7 @@ export const useAgentStore = create<AgentStore>()(
           sam:     ["github", "e2b"],
           tom:     ["e2b"],
           ella:    ["notion"],
+          forge:   ["e2b"],  // E2B obligatoire pour Forge
           // camille, maya, ryo : pas de connecteur par défaut
         };
         set((s) => ({
