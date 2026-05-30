@@ -2,69 +2,172 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Thèmes visuels — Override direct des classes Tailwind par thème ── */
-/*
-  Approche : sélecteurs html[data-theme="X"] avec spécificité supérieure
-  aux classes Tailwind — fonctionne sans rebuild.
-*/
+/* ══════════════════════════════════════════════════════════════════════
+   THÈMES VISUELS — Overrides complets de toutes les classes Tailwind
+   Spécificité html[data-theme="X"] > classe Tailwind → pas de rebuild
+   ══════════════════════════════════════════════════════════════════════ */
 
-/* Thème Arctic — fond clair */
-html[data-theme="arctic"],
-html[data-theme="arctic"] body,
-html[data-theme="arctic"] #root { background: #F7F8FA; color: #1A1A2E; }
+/* ── Variables communes ──────────────────────────────────────────────── */
+:root {
+  --silk-r: 245; --silk-g: 245; --silk-b: 247;  /* Mineral silk #F5F5F7 */
+}
 
-html[data-theme="arctic"] .bg-onyx           { background-color: #F7F8FA; }
-html[data-theme="arctic"] .bg-graphite        { background-color: #FFFFFF; }
-html[data-theme="arctic"] .bg-graphite-light  { background-color: #F0F2F5; }
-html[data-theme="arctic"] .text-silk          { color: #1A1A2E; }
-html[data-theme="arctic"] .text-silk\/40      { color: rgba(26,26,46,0.4); }
-html[data-theme="arctic"] .text-silk\/60      { color: rgba(26,26,46,0.6); }
-html[data-theme="arctic"] .text-silk\/70      { color: rgba(26,26,46,0.7); }
-html[data-theme="arctic"] .border-crystal     { border-color: #D0D4DB; }
-html[data-theme="arctic"] .border-crystal\/50 { border-color: rgba(208,212,219,0.5); }
-html[data-theme="arctic"] .bg-crystal         { background-color: #E2E4E8; }
-html[data-theme="arctic"] .bg-crystal\/50     { background-color: rgba(226,228,232,0.5); }
-
-/* Thème Forest — sombre vert */
+/* ════════════════════════════════
+   🌿 FOREST — Vert sombre profond
+   ════════════════════════════════ */
 html[data-theme="forest"],
 html[data-theme="forest"] body,
-html[data-theme="forest"] #root { background: #0D1A12; color: #E8F5E9; }
+html[data-theme="forest"] #root      { background-color:#0D1A12; color:#E8F5E9; }
 
-html[data-theme="forest"] .bg-onyx           { background-color: #0D1A12; }
-html[data-theme="forest"] .bg-graphite        { background-color: #162018; }
-html[data-theme="forest"] .bg-graphite-light  { background-color: #1A281E; }
-html[data-theme="forest"] .text-silk          { color: #E8F5E9; }
-html[data-theme="forest"] .text-silk\/40      { color: rgba(232,245,233,0.4); }
-html[data-theme="forest"] .text-silk\/60      { color: rgba(232,245,233,0.6); }
-html[data-theme="forest"] .text-silk\/70      { color: rgba(232,245,233,0.7); }
-html[data-theme="forest"] .border-crystal     { border-color: #2A4038; }
-html[data-theme="forest"] .border-crystal\/50 { border-color: rgba(42,64,56,0.5); }
-html[data-theme="forest"] .bg-crystal         { background-color: #243028; }
-html[data-theme="forest"] .bg-crystal\/50     { background-color: rgba(36,48,40,0.5); }
+/* Backgrounds */
+html[data-theme="forest"] .bg-onyx             { background-color:#0D1A12; }
+html[data-theme="forest"] .bg-onyx\/20         { background-color:rgba(13,26,18,0.2); }
+html[data-theme="forest"] .bg-graphite         { background-color:#162018; }
+html[data-theme="forest"] .bg-graphite\/30     { background-color:rgba(22,32,24,0.3); }
+html[data-theme="forest"] .bg-graphite\/50     { background-color:rgba(22,32,24,0.5); }
+html[data-theme="forest"] .bg-graphite\/60     { background-color:rgba(22,32,24,0.6); }
+html[data-theme="forest"] .bg-graphite\/95     { background-color:rgba(22,32,24,0.95); }
+html[data-theme="forest"] .bg-graphite-light   { background-color:#1A2618; }
+html[data-theme="forest"] .bg-graphite-light\/40{ background-color:rgba(26,38,24,0.4); }
+html[data-theme="forest"] .bg-graphite-light\/60{ background-color:rgba(26,38,24,0.6); }
+html[data-theme="forest"] .bg-crystal          { background-color:#243028; }
+html[data-theme="forest"] .bg-crystal\/30      { background-color:rgba(36,48,40,0.3); }
+html[data-theme="forest"] .bg-crystal\/40      { background-color:rgba(36,48,40,0.4); }
+html[data-theme="forest"] .bg-crystal\/50      { background-color:rgba(36,48,40,0.5); }
+/* Textes silk */
+html[data-theme="forest"] .text-silk           { color:#E8F5E9; }
+html[data-theme="forest"] .text-silk\/15       { color:rgba(232,245,233,0.15); }
+html[data-theme="forest"] .text-silk\/20       { color:rgba(232,245,233,0.2); }
+html[data-theme="forest"] .text-silk\/25       { color:rgba(232,245,233,0.25); }
+html[data-theme="forest"] .text-silk\/30       { color:rgba(232,245,233,0.3); }
+html[data-theme="forest"] .text-silk\/35       { color:rgba(232,245,233,0.35); }
+html[data-theme="forest"] .text-silk\/40       { color:rgba(232,245,233,0.4); }
+html[data-theme="forest"] .text-silk\/50       { color:rgba(232,245,233,0.5); }
+html[data-theme="forest"] .text-silk\/55       { color:rgba(232,245,233,0.55); }
+html[data-theme="forest"] .text-silk\/60       { color:rgba(232,245,233,0.6); }
+html[data-theme="forest"] .text-silk\/65       { color:rgba(232,245,233,0.65); }
+html[data-theme="forest"] .text-silk\/70       { color:rgba(232,245,233,0.7); }
+html[data-theme="forest"] .text-silk\/80       { color:rgba(232,245,233,0.8); }
+html[data-theme="forest"] .text-silk\/85       { color:rgba(232,245,233,0.85); }
+/* Bordures */
+html[data-theme="forest"] .border-crystal      { border-color:#2E4035; }
+html[data-theme="forest"] .border-crystal-light{ border-color:#3A5040; }
+html[data-theme="forest"] .border-crystal\/20  { border-color:rgba(46,64,53,0.2); }
+html[data-theme="forest"] .border-crystal\/30  { border-color:rgba(46,64,53,0.3); }
+html[data-theme="forest"] .border-crystal\/40  { border-color:rgba(46,64,53,0.4); }
+html[data-theme="forest"] .border-crystal\/50  { border-color:rgba(46,64,53,0.5); }
+html[data-theme="forest"] .border-crystal\/60  { border-color:rgba(46,64,53,0.6); }
+/* Placeholders */
+html[data-theme="forest"] ::placeholder        { color:rgba(232,245,233,0.2); }
 
-/* Thème Sunset — sombre chaud */
+/* ════════════════════════════════
+   🌅 SUNSET — Chaud brun-rouge
+   ════════════════════════════════ */
 html[data-theme="sunset"],
 html[data-theme="sunset"] body,
-html[data-theme="sunset"] #root { background: #1A0A0A; color: #FFF3E0; }
+html[data-theme="sunset"] #root      { background-color:#1A0A0A; color:#FFF3E0; }
 
-html[data-theme="sunset"] .bg-onyx           { background-color: #1A0A0A; }
-html[data-theme="sunset"] .bg-graphite        { background-color: #231212; }
-html[data-theme="sunset"] .bg-graphite-light  { background-color: #2A1612; }
-html[data-theme="sunset"] .text-silk          { color: #FFF3E0; }
-html[data-theme="sunset"] .text-silk\/40      { color: rgba(255,243,224,0.4); }
-html[data-theme="sunset"] .text-silk\/60      { color: rgba(255,243,224,0.6); }
-html[data-theme="sunset"] .text-silk\/70      { color: rgba(255,243,224,0.7); }
-html[data-theme="sunset"] .border-crystal     { border-color: #4A2020; }
-html[data-theme="sunset"] .border-crystal\/50 { border-color: rgba(74,32,32,0.5); }
-html[data-theme="sunset"] .bg-crystal         { background-color: #3A1A1A; }
-html[data-theme="sunset"] .bg-crystal\/50     { background-color: rgba(58,26,26,0.5); }
+/* Backgrounds */
+html[data-theme="sunset"] .bg-onyx             { background-color:#1A0A0A; }
+html[data-theme="sunset"] .bg-onyx\/20         { background-color:rgba(26,10,10,0.2); }
+html[data-theme="sunset"] .bg-graphite         { background-color:#231212; }
+html[data-theme="sunset"] .bg-graphite\/30     { background-color:rgba(35,18,18,0.3); }
+html[data-theme="sunset"] .bg-graphite\/50     { background-color:rgba(35,18,18,0.5); }
+html[data-theme="sunset"] .bg-graphite\/60     { background-color:rgba(35,18,18,0.6); }
+html[data-theme="sunset"] .bg-graphite\/95     { background-color:rgba(35,18,18,0.95); }
+html[data-theme="sunset"] .bg-graphite-light   { background-color:#2A1612; }
+html[data-theme="sunset"] .bg-graphite-light\/40{ background-color:rgba(42,22,18,0.4); }
+html[data-theme="sunset"] .bg-graphite-light\/60{ background-color:rgba(42,22,18,0.6); }
+html[data-theme="sunset"] .bg-crystal          { background-color:#3A1A1A; }
+html[data-theme="sunset"] .bg-crystal\/30      { background-color:rgba(58,26,26,0.3); }
+html[data-theme="sunset"] .bg-crystal\/40      { background-color:rgba(58,26,26,0.4); }
+html[data-theme="sunset"] .bg-crystal\/50      { background-color:rgba(58,26,26,0.5); }
+/* Textes silk */
+html[data-theme="sunset"] .text-silk           { color:#FFF3E0; }
+html[data-theme="sunset"] .text-silk\/15       { color:rgba(255,243,224,0.15); }
+html[data-theme="sunset"] .text-silk\/20       { color:rgba(255,243,224,0.2); }
+html[data-theme="sunset"] .text-silk\/25       { color:rgba(255,243,224,0.25); }
+html[data-theme="sunset"] .text-silk\/30       { color:rgba(255,243,224,0.3); }
+html[data-theme="sunset"] .text-silk\/35       { color:rgba(255,243,224,0.35); }
+html[data-theme="sunset"] .text-silk\/40       { color:rgba(255,243,224,0.4); }
+html[data-theme="sunset"] .text-silk\/50       { color:rgba(255,243,224,0.5); }
+html[data-theme="sunset"] .text-silk\/55       { color:rgba(255,243,224,0.55); }
+html[data-theme="sunset"] .text-silk\/60       { color:rgba(255,243,224,0.6); }
+html[data-theme="sunset"] .text-silk\/65       { color:rgba(255,243,224,0.65); }
+html[data-theme="sunset"] .text-silk\/70       { color:rgba(255,243,224,0.7); }
+html[data-theme="sunset"] .text-silk\/80       { color:rgba(255,243,224,0.8); }
+html[data-theme="sunset"] .text-silk\/85       { color:rgba(255,243,224,0.85); }
+/* Bordures */
+html[data-theme="sunset"] .border-crystal      { border-color:#4A2020; }
+html[data-theme="sunset"] .border-crystal-light{ border-color:#5E2A2A; }
+html[data-theme="sunset"] .border-crystal\/20  { border-color:rgba(74,32,32,0.2); }
+html[data-theme="sunset"] .border-crystal\/30  { border-color:rgba(74,32,32,0.3); }
+html[data-theme="sunset"] .border-crystal\/40  { border-color:rgba(74,32,32,0.4); }
+html[data-theme="sunset"] .border-crystal\/50  { border-color:rgba(74,32,32,0.5); }
+html[data-theme="sunset"] .border-crystal\/60  { border-color:rgba(74,32,32,0.6); }
+/* Placeholders */
+html[data-theme="sunset"] ::placeholder        { color:rgba(255,243,224,0.2); }
 
-/* Mineral (défaut) — s'assurer que html/body ont la bonne couleur */
-:root, html[data-theme="mineral"],
-html:not([data-theme]) {
-  --color-onyx: #0B0B0C;
-  --color-graphite: #1C1C1E;
-  --color-accent: #007AFF;
+/* ════════════════════════════════
+   🌨️ ARCTIC — Clair, épuré
+   Approche : texte sombre sur fond clair
+   Silk → remplacé par #0F172A (bleu-gris très sombre)
+   ════════════════════════════════ */
+html[data-theme="arctic"],
+html[data-theme="arctic"] body,
+html[data-theme="arctic"] #root      { background-color:#F1F5F9; color:#0F172A; }
+
+/* Backgrounds — palettes claires */
+html[data-theme="arctic"] .bg-onyx             { background-color:#F1F5F9; }
+html[data-theme="arctic"] .bg-onyx\/20         { background-color:rgba(241,245,249,0.2); }
+html[data-theme="arctic"] .bg-graphite         { background-color:#FFFFFF; }
+html[data-theme="arctic"] .bg-graphite\/30     { background-color:rgba(255,255,255,0.3); }
+html[data-theme="arctic"] .bg-graphite\/50     { background-color:rgba(255,255,255,0.5); }
+html[data-theme="arctic"] .bg-graphite\/60     { background-color:rgba(255,255,255,0.6); }
+html[data-theme="arctic"] .bg-graphite\/95     { background-color:rgba(255,255,255,0.95); }
+html[data-theme="arctic"] .bg-graphite-light   { background-color:#F8FAFC; }
+html[data-theme="arctic"] .bg-graphite-light\/40{ background-color:rgba(248,250,252,0.4); }
+html[data-theme="arctic"] .bg-graphite-light\/60{ background-color:rgba(248,250,252,0.6); }
+html[data-theme="arctic"] .bg-crystal          { background-color:#E2E8F0; }
+html[data-theme="arctic"] .bg-crystal\/30      { background-color:rgba(226,232,240,0.3); }
+html[data-theme="arctic"] .bg-crystal\/40      { background-color:rgba(226,232,240,0.4); }
+html[data-theme="arctic"] .bg-crystal\/50      { background-color:rgba(226,232,240,0.5); }
+
+/* Textes — silk remplacé par bleu-gris sombre #0F172A */
+html[data-theme="arctic"] .text-silk           { color:#0F172A; }
+html[data-theme="arctic"] .text-silk\/15       { color:rgba(15,23,42,0.15); }
+html[data-theme="arctic"] .text-silk\/20       { color:rgba(15,23,42,0.2); }
+html[data-theme="arctic"] .text-silk\/25       { color:rgba(15,23,42,0.3); }  /* boosted car fond clair */
+html[data-theme="arctic"] .text-silk\/30       { color:rgba(15,23,42,0.35); }
+html[data-theme="arctic"] .text-silk\/35       { color:rgba(15,23,42,0.4); }
+html[data-theme="arctic"] .text-silk\/40       { color:rgba(15,23,42,0.45); }
+html[data-theme="arctic"] .text-silk\/50       { color:rgba(15,23,42,0.55); }
+html[data-theme="arctic"] .text-silk\/55       { color:rgba(15,23,42,0.6); }
+html[data-theme="arctic"] .text-silk\/60       { color:rgba(15,23,42,0.65); }
+html[data-theme="arctic"] .text-silk\/65       { color:rgba(15,23,42,0.7); }
+html[data-theme="arctic"] .text-silk\/70       { color:rgba(15,23,42,0.75); }
+html[data-theme="arctic"] .text-silk\/80       { color:rgba(15,23,42,0.85); }
+html[data-theme="arctic"] .text-silk\/85       { color:rgba(15,23,42,0.9); }
+
+/* Bordures */
+html[data-theme="arctic"] .border-crystal      { border-color:#CBD5E1; }
+html[data-theme="arctic"] .border-crystal-light{ border-color:#B8C4D4; }
+html[data-theme="arctic"] .border-crystal\/20  { border-color:rgba(203,213,225,0.2); }
+html[data-theme="arctic"] .border-crystal\/30  { border-color:rgba(203,213,225,0.3); }
+html[data-theme="arctic"] .border-crystal\/40  { border-color:rgba(203,213,225,0.4); }
+html[data-theme="arctic"] .border-crystal\/50  { border-color:rgba(203,213,225,0.5); }
+html[data-theme="arctic"] .border-crystal\/60  { border-color:rgba(203,213,225,0.6); }
+
+/* Placeholders */
+html[data-theme="arctic"] ::placeholder        { color:rgba(15,23,42,0.25); }
+
+/* Arctic — composants spécifiques qui ont des fonds sombres hardcodés */
+html[data-theme="arctic"] .shadow-glow-electric { box-shadow: 0 0 20px rgba(0,122,255,0.2); }
+html[data-theme="arctic"] .shadow-glow-mystic   { box-shadow: 0 0 20px rgba(162,89,255,0.2); }
+
+/* ── Mineral (défaut) — inchangé ──────────────────────────────────── */
+:root, html[data-theme="mineral"], html:not([data-theme]) {
+  background-color: #0B0B0C;
 }
 
 @layer components {
