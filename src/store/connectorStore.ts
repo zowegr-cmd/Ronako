@@ -2,12 +2,25 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { invoke } from "@tauri-apps/api/core";
 
+export interface McpTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
 export interface CustomMcpEntry {
   id: string;
   name: string;
   description: string;
   package: string;
   icon: string;
+  extraArgs?: string;  // arguments CLI supplémentaires (ex: chemin pour filesystem)
+}
+
+export interface McpServerState {
+  status: "stopped" | "starting" | "running" | "error";
+  tools: McpTool[];
+  errorMsg?: string;
 }
 
 export interface CustomHttpConnector {
@@ -41,6 +54,10 @@ interface ConnectorStore {
 
   addCustomMcp: (mcp: Omit<CustomMcpEntry, "id">) => void;
   removeCustomMcp: (id: string) => void;
+  // MCP runtime state (non persisté)
+  mcpStates: Record<string, McpServerState>;
+  setMcpState: (id: string, state: McpServerState) => void;
+  clearMcpState: (id: string) => void;
 }
 
 // Tous les IDs de connecteurs connus (builtin + phase 8)
@@ -61,6 +78,7 @@ export const useConnectorStore = create<ConnectorStore>()(
       keys: {},
       customConnectors: [],
       customMcps: [],
+      mcpStates: {},
 
       setKey: async (id, value) => {
         await invoke("secure_set_key", { account: `ronako-connector-${id}`, secret: value });
@@ -128,7 +146,14 @@ export const useConnectorStore = create<ConnectorStore>()(
       })),
       removeCustomMcp: (id) => set((s) => ({
         customMcps: s.customMcps.filter((m) => m.id !== id),
+        mcpStates: Object.fromEntries(Object.entries(s.mcpStates).filter(([k]) => k !== id)),
       })),
+      setMcpState: (id, state) => set((s) => ({ mcpStates: { ...s.mcpStates, [id]: state } })),
+      clearMcpState: (id) => set((s) => {
+        const next = { ...s.mcpStates };
+        delete next[id];
+        return { mcpStates: next };
+      }),
 
       addCustomConnector: (c) => {
         const connector: CustomHttpConnector = { ...c, id: `custom-${Date.now()}` };

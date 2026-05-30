@@ -930,7 +930,35 @@ function McpTab() {
   const [githubUrl, setGithubUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
-  const { customMcps, addCustomMcp, removeCustomMcp } = useConnectorStore();
+  const { customMcps, addCustomMcp, removeCustomMcp, mcpStates, setMcpState } = useConnectorStore();
+  const toast = useToastStore();
+
+  const startServer = async (entry: import("@/store/connectorStore").CustomMcpEntry) => {
+    setMcpState(entry.id, { status: "starting", tools: [] });
+    try {
+      const extraArgs = entry.extraArgs ? entry.extraArgs.split(" ").filter(Boolean) : [];
+      const tools = await invoke<import("@/store/connectorStore").McpTool[]>("mcp_start", {
+        serverId: entry.id,
+        package: entry.package.replace(/^npx -y /, ""),
+        extraArgs,
+      });
+      setMcpState(entry.id, { status: "running", tools });
+      toast.success(`${entry.name} démarré`, `${tools.length} outil${tools.length > 1 ? "s" : ""} disponible${tools.length > 1 ? "s" : ""}`);
+    } catch (e) {
+      setMcpState(entry.id, { status: "error", tools: [], errorMsg: String(e) });
+      toast.error(`Erreur MCP ${entry.name}`, String(e));
+    }
+  };
+
+  const stopServer = async (entry: import("@/store/connectorStore").CustomMcpEntry) => {
+    try {
+      await invoke("mcp_stop", { serverId: entry.id });
+      setMcpState(entry.id, { status: "stopped", tools: [] });
+      toast.success(`${entry.name} arrêté`, "");
+    } catch (e) {
+      toast.error("Erreur arrêt MCP", String(e));
+    }
+  };
 
   const handleImportMcp = async () => {
     if (!githubUrl.trim()) return;
@@ -1006,32 +1034,71 @@ function McpTab() {
         {importError && <p className="text-[10px] text-danger/70">{importError}</p>}
       </div>
 
-      {/* Serveurs importés */}
+      {/* Serveurs MCP — actifs en premier */}
       {customMcps.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-[10px] text-silk/30 uppercase tracking-widest">Importés</p>
-          {customMcps.map((s) => (
-            <div key={s.id} className="bg-graphite border border-crystal/50 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{s.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-silk">{s.name}</p>
-                  <p className="text-[10px] text-silk/40 truncate">{s.description}</p>
-                  <code className="text-[9px] text-electric/60 font-mono">{s.package}</code>
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest">
+            Mes serveurs ({customMcps.length}) — Node.js requis
+          </p>
+          {customMcps.map((s) => {
+            const state = mcpStates[s.id] ?? { status: "stopped", tools: [] };
+            const isRunning = state.status === "running";
+            const isStarting = state.status === "starting";
+            return (
+              <div key={s.id} className={cn("rounded-xl border transition-all",
+                isRunning ? "border-success/30 bg-success/3" :
+                state.status === "error" ? "border-danger/30 bg-danger/3" :
+                "border-crystal/50 bg-graphite")}>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <span className="text-xl">{s.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-silk">{s.name}</p>
+                      {isRunning && <span className="text-[9px] bg-success/15 text-success px-1.5 py-0.5 rounded-full flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Running · {state.tools.length} outils</span>}
+                      {isStarting && <span className="text-[9px] bg-warning/15 text-warning px-1.5 py-0.5 rounded-full">⏳ Démarrage…</span>}
+                      {state.status === "error" && <span className="text-[9px] bg-danger/15 text-danger px-1.5 py-0.5 rounded-full">❌ Erreur</span>}
+                    </div>
+                    <p className="text-[9px] text-silk/40">{s.description}</p>
+                    {state.status === "error" && state.errorMsg && (
+                      <p className="text-[9px] text-danger/60 mt-0.5">{state.errorMsg.slice(0, 100)}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    {isRunning ? (
+                      <Button variant="warning" size="sm" onClick={() => void stopServer(s)}>
+                        ⏹ Arrêter
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" loading={isStarting} onClick={() => void startServer(s)}>
+                        ▶ Démarrer
+                      </Button>
+                    )}
+                    <button onClick={() => removeCustomMcp(s.id)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10">
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
-                  <button onClick={() => { navigator.clipboard.writeText(s.package); setCopiedId(s.id); setTimeout(() => setCopiedId(null), 2000); }}
-                    className="flex items-center gap-1 text-[9px] text-silk/30 hover:text-silk/60 border border-crystal/40 rounded-lg px-2 py-0.5">
-                    {copiedId === s.id ? <><Check size={9} className="text-success" /> Copié</> : <><Copy size={9} /> Copier</>}
-                  </button>
-                  <button onClick={() => removeCustomMcp(s.id)}
-                    className="w-6 h-6 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10">
-                    <Trash2 size={11} />
-                  </button>
-                </div>
+
+                {/* Outils disponibles */}
+                <AnimatePresence>
+                  {isRunning && state.tools.length > 0 && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="border-t border-crystal/20 mx-4 mb-3 pt-2 flex flex-wrap gap-1.5">
+                        {state.tools.map((t) => (
+                          <div key={t.name} className="flex items-center gap-1 bg-success/8 border border-success/20 rounded-lg px-2 py-0.5" title={t.description}>
+                            <Zap size={8} className="text-success/50" />
+                            <span className="text-[9px] text-success/70 font-mono">{t.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

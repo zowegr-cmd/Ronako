@@ -84,6 +84,23 @@ pub async fn execute_tool(
             }
         }
 
+        // ── Outils MCP : mcp__{server_id}__{tool_name} ───────────────────────────
+        name if name.starts_with("mcp__") => {
+            let rest = &name[5..];
+            if let Some(sep) = rest.find("__") {
+                let server_id = &rest[..sep];
+                let tool_name = &rest[sep + 2..];
+                crate::mcp::call_tool(tool_use_id, server_id, tool_name, input).await
+            } else {
+                ToolResult {
+                    tool_use_id: tool_use_id.to_string(),
+                    content: format!("Format MCP invalide : {} (attendu: mcp__serverId__toolName)", name),
+                    is_error: true,
+                    metadata: None,
+                }
+            }
+        }
+
         unknown => ToolResult {
             tool_use_id: tool_use_id.to_string(),
             content: format!("Outil inconnu : {}", unknown),

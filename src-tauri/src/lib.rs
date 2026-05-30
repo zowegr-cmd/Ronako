@@ -2,6 +2,7 @@ mod commands;
 mod anthropic;
 mod folder;
 pub mod tools;
+pub mod mcp;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +26,11 @@ pub fn run() {
             anthropic::anthropic_stream,
             anthropic::anthropic_abort,
             anthropic::anthropic_stream_with_tools,
+            mcp::mcp_start,
+            mcp::mcp_stop,
+            mcp::mcp_list_tools_cmd,
+            mcp::mcp_status,
+            mcp::mcp_running_servers,
             folder::read_project_folder,
             commands::tavily_search,
             commands::http_custom_call,

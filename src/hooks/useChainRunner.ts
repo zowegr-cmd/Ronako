@@ -42,7 +42,7 @@ export function useChainRunner(teamId: string) {
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
-  const { keys: allConnectorKeys, customConnectors } = useConnectorStore();
+  const { keys: allConnectorKeys, customConnectors, mcpStates } = useConnectorStore();
   const toast = useToastStore();
   const { stream, abort: abortStream } = useAnthropicStream();
   const { playChainStart, playChime } = useSounds();
@@ -274,9 +274,22 @@ export function useChainRunner(teamId: string) {
           extra,
         };
         const agentTools = buildToolDefinitions(agentConnectorIdsEarly, toolKeyMap, customConnectors);
-        const useToolsApi = agentTools.length > 0;
 
-        // Noms lisibles pour injection dans le prompt
+        // Ajouter les outils des serveurs MCP en cours d'exécution
+        const mcpTools: import("@/lib/chainEngine").ToolDefinition[] = [];
+        for (const [serverId, state] of Object.entries(mcpStates)) {
+          if (state.status !== "running") continue;
+          for (const tool of state.tools) {
+            mcpTools.push({
+              name: `mcp__${serverId}__${tool.name}`,
+              description: `[MCP] ${tool.description}`,
+              input_schema: tool.input_schema as Record<string, unknown>,
+            });
+          }
+        }
+        const allTools = [...agentTools, ...mcpTools];
+        const useToolsApi = allTools.length > 0;
+
         const toolLabels: Record<string, string> = {
           generate_image_dalle: "DALL-E 3 (génération image haute qualité)",
           generate_image_flux: "Flux (génération image rapide)",
@@ -285,7 +298,11 @@ export function useChainRunner(teamId: string) {
           github_push: "GitHub (commits, fichiers, PRs)",
           web_search: "Tavily (recherche web temps réel)",
         };
-        const activeToolNames = agentTools.map((t) => toolLabels[t.name] ?? t.name);
+        const activeToolNames = allTools.map((t) =>
+          t.name.startsWith("mcp__")
+            ? `MCP: ${t.description.replace("[MCP] ", "")}`
+            : (toolLabels[t.name] ?? t.name),
+        );
 
         // ── Construire le prompt ──────────────────────────────────
         const combinedFolderContext = [folderContext, searchContext].filter(Boolean).join("\n\n") || undefined;
@@ -374,7 +391,7 @@ export function useChainRunner(teamId: string) {
                     systemPrompt: agent.systemPrompt,
                     userMessage: prompt,
                     requestId: reqId,
-                    tools: agentTools,
+                    tools: allTools,
                     toolKeys: toolKeyMap,
                   }).catch((e) => { apiError = String(e); unlisteners.forEach((fn) => fn()); resolve(); });
                 };
