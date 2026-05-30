@@ -194,6 +194,7 @@ export interface ToolKeys {
   notion?: string;
   github?: string;
   tavily?: string;
+  extra?: Record<string, string>;  // toutes les autres clés + configs custom
 }
 
 const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
@@ -274,20 +275,78 @@ const TOOL_DEFINITIONS: Record<string, ToolDefinition> = {
   },
 };
 
+/** Définition générique pour toute API du catalogue sans implémentation dédiée */
+function genericApiTool(id: string, name: string, description: string): ToolDefinition {
+  return {
+    name: `api_${id}`,
+    description: `${name} — ${description} Utilise l'endpoint approprié selon le besoin.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        endpoint: { type: "string", description: "Chemin de l'endpoint (ex: /v1/resources) ou URL complète" },
+        method: { type: "string", enum: ["GET", "POST", "PUT", "PATCH", "DELETE"], description: "Méthode HTTP" },
+        body: { type: "object", description: "Body JSON de la requête (optionnel)" },
+      },
+      required: ["endpoint"],
+    },
+  };
+}
+
 /**
  * Construit les définitions d'outils pour un agent selon ses connecteurs actifs.
- * Tout connecteur peut être assigné à tout agent — pas de restriction.
+ * Tout connecteur peut être assigné à tout agent — aucune restriction.
+ * Inclut : outils Phase 8 dédiés + APIs génériques + connecteurs HTTP custom.
  */
 export function buildToolDefinitions(
   connectorIds: string[],
   toolKeys: ToolKeys,
+  customConnectors?: Array<{ id: string; name: string; description: string; url: string; method: string; authType: string; authHeader?: string; keyField: string; bodyTemplate?: string }>,
 ): ToolDefinition[] {
-  return connectorIds
-    .filter((id) => {
-      const key = toolKeys[id as keyof ToolKeys];
-      return key && key.length > 0 && TOOL_DEFINITIONS[id];
-    })
-    .map((id) => TOOL_DEFINITIONS[id]);
+  const defs: ToolDefinition[] = [];
+
+  for (const id of connectorIds) {
+    // Outils avec implémentation Rust dédiée (Phase 8)
+    if (TOOL_DEFINITIONS[id]) {
+      const key = toolKeys[id as keyof ToolKeys] as string | undefined
+        ?? toolKeys.extra?.[id];
+      if (key) defs.push(TOOL_DEFINITIONS[id]);
+      continue;
+    }
+
+    // API générique du catalogue (sans implémentation dédiée)
+    if (id.startsWith("custom_")) continue; // traité séparément
+
+    const extraKey = toolKeys.extra?.[id];
+    if (extraKey) {
+      // Chercher le nom/description dans l'extra (passé par chainRunner)
+      const apiName = toolKeys.extra?.[`__name_${id}`] ?? id;
+      const apiDesc = toolKeys.extra?.[`__desc_${id}`] ?? `API ${id}`;
+      defs.push(genericApiTool(id, apiName, apiDesc));
+    }
+  }
+
+  // Connecteurs HTTP custom
+  if (customConnectors) {
+    for (const c of customConnectors) {
+      if (!connectorIds.includes(`custom_${c.id}`)) continue;
+      const hasKey = !!(toolKeys.extra?.[c.keyField] || c.authType === "none");
+      if (!hasKey) continue;
+      defs.push({
+        name: `custom_${c.id}`,
+        description: c.description || `API custom : ${c.name}`,
+        input_schema: {
+          type: "object",
+          properties: {
+            input: { type: "string", description: "Données à envoyer à l'API" },
+            endpoint_override: { type: "string", description: "Override de l'endpoint (optionnel)" },
+          },
+          required: [],
+        },
+      });
+    }
+  }
+
+  return defs;
 }
 
 export type { ToolDefinition as ToolDef };

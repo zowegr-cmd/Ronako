@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Lock, MessageSquare, Pencil,
   Trash2, ToggleLeft, ToggleRight, Package,
-  Zap, ExternalLink, CheckCircle2,
-  AlertCircle, ChevronRight,
+  Zap, CheckCircle2, ChevronRight,
 } from "lucide-react";
 import { AgentAvatar } from "@/components/agents/AgentAvatar";
 import { AgentForm } from "@/components/agents/AgentForm";
@@ -15,18 +14,17 @@ import { Slider } from "@/components/ui/Slider";
 import { Toggle } from "@/components/ui/Toggle";
 import { MarkdownMessage } from "@/components/ui/MarkdownMessage";
 import { useAgentStore, BUILTIN_CONSULTANT_IDS } from "@/store/agentStore";
-import { useSettingsStore } from "@/store/settingsStore";
 import { useAgentChat } from "@/components/agents/AgentChatModal";
 import { RELAY_AGENT, SYSTEM_AGENT_IDS } from "@/lib/agents/defaultTeam";
 import { SKILL_PACKS } from "@/lib/skillPacks";
-import { ALL_CONNECTORS } from "@/lib/connectors/types";
+import { API_CATALOG } from "@/lib/apiCatalog";
+import { useConnectorStore } from "@/store/connectorStore";
 import { MODEL_LABELS, MODEL_TIERS, MODEL_TIER_COLOR } from "@/types";
 import type { Agent, Skill } from "@/types";
 import { cn } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { exportAgent, importRonakoFile } from "@/lib/exportImport";
 import { useToastStore } from "@/store/toastStore";
-import { useNavigate } from "react-router-dom";
 
 type EditorTab = "config" | "prompt" | "skills" | "connectors";
 
@@ -46,9 +44,7 @@ export function AgentStudio() {
     installSkillPack, getSkillsForAgent,
   } = useAgentStore();
   void _updateSkill;
-  const { connectorKeys } = useSettingsStore();
   const openChat = useAgentChat((s) => s.openChat);
-  const navigate = useNavigate();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>("config");
@@ -221,8 +217,7 @@ export function AgentStudio() {
                     />
                   )}
                   {activeTab === "connectors" && (
-                    <ConnectorsTab agent={selectedAgent} connectorKeys={connectorKeys as Partial<Record<string, string>>} isSystem={isSystemAgent}
-                      onNavigateSettings={() => navigate("/settings")}
+                    <ConnectorsTab agent={selectedAgent} isSystem={isSystemAgent}
                       onAskNova={() => {
                         const nova = [...consultants].find((c) => c.id === "consultant-nova");
                         if (nova) openChat({ ...nova, systemPrompt: `${nova.systemPrompt}\n\nContexte : je configure ${selectedAgent.name} (${selectedAgent.role}).` });
@@ -542,15 +537,18 @@ function SkillCard({ skill, onToggle, onDelete }: { skill: Skill; onToggle: (id:
 }
 
 // ─── Onglet Connecteurs ───────────────────────────────────────────────────────
-function ConnectorsTab({ agent, connectorKeys, isSystem, onNavigateSettings, onAskNova, onUpdateAgent }: {
-  agent: Agent; connectorKeys: Partial<Record<string, string>>; isSystem: boolean;
-  onNavigateSettings: () => void; onAskNova: () => void;
+function ConnectorsTab({ agent, isSystem, onAskNova, onUpdateAgent }: {
+  agent: Agent; isSystem: boolean;
+  onAskNova: () => void;
   onUpdateAgent: (updates: Partial<Agent>) => void;
 }) {
+  const { getKey } = useConnectorStore();
+  const [search, setSearch] = useState("");
+
   const nativeTools = [
-    { id: "web_search", label: "Recherche Web", icon: "🔍", desc: "Recherche Tavily ou web" },
-    { id: "image_gen", label: "Génération d'images", icon: "🎨", desc: "DALL-E / Flux" },
-    { id: "file_read", label: "Lecture fichiers", icon: "📂", desc: "Dossier projet connecté" },
+    { id: "web_search", label: "Recherche Web", icon: "🔍", desc: "Tavily / web search" },
+    { id: "image_gen",  label: "Génération images", icon: "🎨", desc: "DALL-E / Flux" },
+    { id: "file_read",  label: "Lecture fichiers", icon: "📂", desc: "Dossier projet connecté" },
   ] as const;
 
   const toggleTool = (toolId: string) => {
@@ -567,16 +565,29 @@ function ConnectorsTab({ agent, connectorKeys, isSystem, onNavigateSettings, onA
     onUpdateAgent({ connectors: newConns });
   };
 
+  // APIs configurées (avec clé) + filtre search
+  const configuredApis = API_CATALOG.filter((api) => {
+    const hasKey = !!getKey(api.keyField);
+    const matchSearch = !search || api.name.toLowerCase().includes(search.toLowerCase());
+    return hasKey && matchSearch;
+  });
+
+  const unconfiguredApis = API_CATALOG.filter((api) => {
+    const hasKey = !!getKey(api.keyField);
+    const matchSearch = !search || api.name.toLowerCase().includes(search.toLowerCase());
+    return !hasKey && !api.comingSoon && matchSearch;
+  }).slice(0, 6); // Montrer seulement 6 non configurées
+
   return (
-    <div className="flex flex-col gap-5 max-w-xl">
+    <div className="flex flex-col gap-5">
       {/* Outils natifs */}
       <div>
-        <p className="text-xs text-silk/40 uppercase tracking-widest mb-3">Outils Anthropic natifs</p>
-        <div className="flex flex-col gap-2">
+        <p className="text-[10px] text-silk/35 uppercase tracking-widest mb-2">Outils natifs Anthropic</p>
+        <div className="flex flex-col gap-1.5">
           {nativeTools.map((t) => (
-            <div key={t.id} className="flex items-center justify-between p-3 bg-graphite-light border border-crystal rounded-xl">
+            <div key={t.id} className="flex items-center justify-between p-2.5 bg-graphite-light border border-crystal rounded-xl">
               <div className="flex items-center gap-2">
-                <span>{t.icon}</span>
+                <span className="text-base">{t.icon}</span>
                 <div>
                   <p className="text-xs font-medium text-silk/70">{t.label}</p>
                   <p className="text-[10px] text-silk/35">{t.desc}</p>
@@ -588,46 +599,71 @@ function ConnectorsTab({ agent, connectorKeys, isSystem, onNavigateSettings, onA
         </div>
       </div>
 
-      {/* APIs directes */}
+      {/* APIs configurées */}
       <div>
-        <p className="text-xs text-silk/40 uppercase tracking-widest mb-3">APIs directes</p>
-        <div className="flex flex-col gap-2">
-          {ALL_CONNECTORS.map((conn) => {
-            const hasKey = !!connectorKeys[conn.apiKeyName];
-            const isActive = agent.connectors?.includes(conn.id) ?? false;
-            return (
-              <div key={conn.id} className="flex items-center gap-3 p-3 bg-graphite-light border border-crystal rounded-xl">
-                <span className="text-lg shrink-0">{conn.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-medium text-silk/70">{conn.name}</p>
-                    {hasKey
-                      ? <CheckCircle2 size={11} className="text-success shrink-0" />
-                      : <AlertCircle size={11} className="text-silk/20 shrink-0" />
-                    }
-                  </div>
-                  <p className="text-[10px] text-silk/35 truncate">{conn.description}</p>
-                </div>
-                {!hasKey ? (
-                  <button onClick={onNavigateSettings} className="text-[10px] text-electric/60 hover:text-electric flex items-center gap-1 shrink-0">
-                    <ExternalLink size={10} /> Configurer
-                  </button>
-                ) : (
-                  <Toggle checked={isActive} onChange={() => toggleConnector(conn.id)} size="sm" disabled={isSystem} color="success" />
-                )}
-              </div>
-            );
-          })}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] text-silk/35 uppercase tracking-widest">APIs connectées</p>
+          <span className="text-[9px] text-silk/20">{configuredApis.length} disponibles</span>
         </div>
+        <input value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filtrer les APIs…"
+          className="w-full bg-graphite-light border border-crystal/50 rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40 mb-2" />
+
+        {configuredApis.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-xs text-silk/30">Aucune API configurée.</p>
+            <button onClick={() => document.dispatchEvent(new CustomEvent("navigate-packs"))}
+              className="text-[10px] text-electric/60 hover:text-electric mt-1 transition-colors">
+              Configurer dans le Pack Manager →
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {configuredApis.map((api) => {
+              const isActive = agent.connectors?.includes(api.id) ?? false;
+              return (
+                <div key={api.id} className={cn("flex items-center gap-3 p-2.5 border rounded-xl transition-all",
+                  isActive ? "border-success/30 bg-success/5" : "bg-graphite-light border-crystal")}>
+                  <span className="text-base shrink-0">{api.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-silk/70">{api.name}</p>
+                      {api.hasToolDef && <span className="text-[8px] bg-electric/10 text-electric px-1 py-0.5 rounded">⚡ Tool Use</span>}
+                      <CheckCircle2 size={10} className="text-success/60" />
+                    </div>
+                    <p className="text-[9px] text-silk/30 truncate">{api.description}</p>
+                  </div>
+                  <Toggle checked={isActive} onChange={() => toggleConnector(api.id)} size="sm" disabled={isSystem} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Aperçu des APIs non configurées */}
+        {unconfiguredApis.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[9px] text-silk/20 mb-1.5">Non configurées — active-les dans Pack Manager :</p>
+            <div className="flex flex-wrap gap-1.5">
+              {unconfiguredApis.map((api) => (
+                <button key={api.id}
+                  onClick={() => document.dispatchEvent(new CustomEvent("navigate-packs"))}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-graphite-light border border-crystal/30 text-[9px] text-silk/30 hover:text-silk/60 transition-colors">
+                  <span>{api.icon}</span> {api.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Bouton Nova */}
+      {/* Nova */}
       <button onClick={onAskNova}
-        className="flex items-center gap-3 p-3 rounded-xl border border-electric/20 bg-electric/5 hover:border-electric/40 hover:bg-electric/10 transition-all text-left">
+        className="flex items-center gap-3 p-3 rounded-xl border border-electric/20 bg-electric/5 hover:border-electric/40 transition-all text-left">
         <span className="text-xl">✦</span>
         <div>
           <p className="text-xs font-semibold text-electric/80">Demander à Nova</p>
-          <p className="text-[10px] text-silk/40">Obtenir des recommandations connecteurs pour {agent.name}</p>
+          <p className="text-[9px] text-silk/40">Recommandations connecteurs pour {agent.name}</p>
         </div>
         <ChevronRight size={14} className="text-silk/20 ml-auto" />
       </button>

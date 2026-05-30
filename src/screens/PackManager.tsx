@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, Download, Trash2, Check, ChevronDown, ChevronRight,
   Plus, Copy, Key, Eye, EyeOff, Zap, Globe, Server,
-  ExternalLink, Search,
+  ExternalLink, Search, Pencil, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SKILL_PACKS } from "@/lib/skillPacks";
@@ -70,17 +70,191 @@ export function PackManager() {
 
 function SkillsTab() {
   const [expandedPack, setExpandedPack] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<import("@/types").Skill | null>(null);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const { skills, addSkill, updateSkill, deleteSkill } = useAgentStore();
+
+  const handleImportGithub = async () => {
+    if (!githubUrl.trim()) return;
+    setImporting(true);
+    try {
+      // Convertir l'URL GitHub en URL raw
+      const raw = githubUrl
+        .replace("github.com", "raw.githubusercontent.com")
+        .replace("/blob/", "/");
+      const resp = await fetch(raw);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      // Parser un skill depuis Markdown : titre = nom, premier paragraphe = description, reste = content
+      const lines = text.split("\n");
+      const name = lines.find((l) => l.startsWith("# "))?.slice(2).trim() ?? "Skill importé";
+      const description = lines.find((l) => !l.startsWith("#") && l.trim())?.trim() ?? "";
+      const content = text;
+      addSkill({ name, description, content, agentIds: [], isActive: true, isTemporary: false, inheritToAll: false, triggerKeywords: [], createdBy: "user" });
+      setGithubUrl("");
+    } catch (e) {
+      alert(`Erreur import : ${String(e)}`);
+    } finally { setImporting(false); }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      className="flex flex-col gap-3">
-      <p className="text-xs text-silk/40 mb-1">
-        Les packs enrichissent le prompt de tes agents avec des connaissances sectorielles sans changer leur rôle.
-      </p>
+      className="flex flex-col gap-4">
+
+      {/* Actions globales */}
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="primary" size="sm" onClick={() => { setEditingSkill(null); setShowEditor(true); }}>
+          <Plus size={12} /> Créer un skill
+        </Button>
+        <div className="flex flex-1 gap-2 min-w-0">
+          <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)}
+            placeholder="URL GitHub d'un fichier .md skill…"
+            className="flex-1 bg-graphite border border-crystal rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40 min-w-0" />
+          <Button variant="ghost" size="sm" loading={importing} disabled={!githubUrl.trim()} onClick={handleImportGithub}>
+            <Download size={12} /> Import
+          </Button>
+        </div>
+      </div>
+
+      {/* Éditeur skill */}
+      <AnimatePresence>
+        {showEditor && (
+          <SkillEditorForm
+            skill={editingSkill}
+            onSave={(data) => {
+              if (editingSkill) updateSkill(editingSkill.id, data);
+              else addSkill({ ...data, createdBy: "user" });
+              setShowEditor(false); setEditingSkill(null);
+            }}
+            onCancel={() => { setShowEditor(false); setEditingSkill(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Skills installés (tous éditables) */}
+      {skills.length > 0 && (
+        <div>
+          <p className="text-[10px] text-silk/30 uppercase tracking-widest mb-2">Mes Skills ({skills.length})</p>
+          <div className="flex flex-col gap-1.5">
+            {skills.map((skill) => (
+              <div key={skill.id} className={cn(
+                "flex items-start gap-3 p-3 rounded-xl border transition-all group",
+                skill.isActive ? "bg-electric/5 border-electric/20" : "bg-graphite border-crystal/50",
+              )}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-medium text-silk">{skill.name}</p>
+                    {skill.isActive && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Actif</span>}
+                    {skill.inheritToAll && <span className="text-[8px] bg-mystic/15 text-mystic px-1.5 py-0.5 rounded-full">🌐 Universel</span>}
+                    {skill.createdBy === "system" && <span className="text-[8px] text-silk/25">pack</span>}
+                  </div>
+                  <p className="text-[10px] text-silk/40 mt-0.5">{skill.description}</p>
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {skill.agentIds.slice(0, 4).map((aid) => (
+                      <span key={aid} className="text-[8px] bg-crystal/40 text-silk/40 px-1.5 py-0.5 rounded-full">{aid}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => { setEditingSkill(skill); setShowEditor(true); }}
+                    className="w-6 h-6 rounded flex items-center justify-center text-silk/25 hover:text-electric/60 opacity-0 group-hover:opacity-100 transition-all">
+                    <Pencil size={11} />
+                  </button>
+                  <button onClick={() => deleteSkill(skill.id)}
+                    className="w-6 h-6 rounded flex items-center justify-center text-silk/20 hover:text-danger opacity-0 group-hover:opacity-100 transition-all">
+                    <Trash2 size={11} />
+                  </button>
+                  <button onClick={() => useAgentStore.getState().toggleSkill(skill.id)}
+                    className="text-silk/30 hover:text-silk/70 transition-colors">
+                    {skill.isActive
+                      ? <ToggleRight size={16} className="text-electric" />
+                      : <ToggleLeft size={16} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-[10px] text-silk/30 border-t border-crystal/30 pt-3">Packs prédéfinis</p>
       {SKILL_PACKS.map((pack) => (
         <SkillPackCard key={pack.id} pack={pack}
           expanded={expandedPack === pack.id}
           onToggle={() => setExpandedPack(expandedPack === pack.id ? null : pack.id)} />
       ))}
+    </motion.div>
+  );
+}
+
+// ── Éditeur de skill ──────────────────────────────────────────────────────────
+
+function SkillEditorForm({ skill, onSave, onCancel }: {
+  skill: import("@/types").Skill | null;
+  onSave: (data: Omit<import("@/types").Skill, "id" | "createdAt" | "useCount" | "avgScoreImpact" | "createdBy">) => void;
+  onCancel: () => void;
+}) {
+  const { agents } = useAgentStore();
+  const [name, setName] = useState(skill?.name ?? "");
+  const [description, setDescription] = useState(skill?.description ?? "");
+  const [content, setContent] = useState(skill?.content ?? "");
+  const [agentIds, setAgentIds] = useState<string[]>(skill?.agentIds ?? []);
+  const [inheritToAll, setInheritToAll] = useState(skill?.inheritToAll ?? false);
+  const [keywords, setKeywords] = useState((skill?.triggerKeywords ?? []).join(", "));
+
+  const toggleAgent = (id: string) =>
+    setAgentIds((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
+
+  const nonSystemAgents = agents.filter((a) => !a.isSystem);
+
+  return (
+    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="bg-graphite border border-electric/30 rounded-xl p-4 flex flex-col gap-3">
+      <p className="text-xs font-semibold text-silk">{skill ? "Modifier le skill" : "Nouveau skill"}</p>
+
+      <input value={name} onChange={(e) => setName(e.target.value)}
+        placeholder="Nom du skill" className="input-sm" />
+      <input value={description} onChange={(e) => setDescription(e.target.value)}
+        placeholder="Description courte" className="input-sm" />
+      <textarea value={content} onChange={(e) => setContent(e.target.value)}
+        placeholder="Contenu injecté dans le prompt de l'agent (instructions, connaissances sectorielles)…"
+        rows={5} className="input-sm resize-none" />
+      <input value={keywords} onChange={(e) => setKeywords(e.target.value)}
+        placeholder="Mots-clés déclencheurs (séparés par virgule)" className="input-sm" />
+
+      <div>
+        <p className="text-[10px] text-silk/40 mb-1.5">Assigner aux agents :</p>
+        <div className="flex flex-wrap gap-1.5">
+          {nonSystemAgents.map((a) => (
+            <button key={a.id} onClick={() => toggleAgent(a.id)}
+              className={cn("px-2 py-0.5 rounded-lg text-[10px] border transition-all",
+                agentIds.includes(a.id) ? "border-electric/40 bg-electric/10 text-electric" : "border-crystal text-silk/40 hover:text-silk/60")}>
+              {a.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2 text-xs text-silk/60 cursor-pointer">
+        <input type="checkbox" checked={inheritToAll} onChange={(e) => setInheritToAll(e.target.checked)}
+          className="accent-electric" />
+        🌐 Universel — injecté dans tous les agents de la chaîne
+      </label>
+
+      <div className="flex gap-2 justify-end pt-1 border-t border-crystal/30">
+        <Button variant="ghost" size="sm" onClick={onCancel}>Annuler</Button>
+        <Button variant="primary" size="sm" disabled={!name.trim() || !content.trim()}
+          onClick={() => onSave({
+            name, description, content, agentIds, inheritToAll, isActive: true, isTemporary: false,
+            triggerKeywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+            sector: undefined,
+          })}>
+          {skill ? "Sauvegarder" : "Créer"}
+        </Button>
+      </div>
     </motion.div>
   );
 }

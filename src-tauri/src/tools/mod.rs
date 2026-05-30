@@ -4,6 +4,7 @@ pub mod e2b;
 pub mod notion;
 pub mod github;
 pub mod tavily;
+pub mod generic_api;
 
 use serde_json::Value;
 
@@ -15,6 +16,9 @@ pub struct ToolKeys {
     pub notion: Option<String>,
     pub github: Option<String>,
     pub tavily: Option<String>,
+    // Toutes les autres clés (APIs génériques + custom HTTP)
+    #[serde(default)]
+    pub extra: std::collections::HashMap<String, String>,
 }
 
 #[derive(serde::Serialize, Clone, Debug)]
@@ -50,12 +54,36 @@ pub async fn execute_tool(
     keys: &ToolKeys,
 ) -> ToolResult {
     match tool_name {
+        // ── Outils Phase 8 avec implémentation spécifique ────────────────────
         "generate_image_dalle" => dalle::execute(tool_use_id, input, keys).await,
         "generate_image_flux"  => flux::execute(tool_use_id, input, keys).await,
         "execute_code"         => e2b::execute(tool_use_id, input, keys).await,
         "export_to_notion"     => notion::execute(tool_use_id, input, keys).await,
         "github_push"          => github::execute(tool_use_id, input, keys).await,
         "web_search"           => tavily::execute(tool_use_id, input, keys).await,
+
+        // ── APIs génériques : api_{id} → HTTP call avec la clé correspondante ─
+        name if name.starts_with("api_") => {
+            let api_id = &name[4..];
+            let api_key = keys.extra.get(api_id).cloned();
+            generic_api::execute(tool_use_id, api_id, api_key, input).await
+        }
+
+        // ── Connecteurs HTTP custom : custom_{id} ─────────────────────────────
+        name if name.starts_with("custom_") => {
+            let connector_id = &name[7..];
+            if let Some(cfg_json) = keys.extra.get(&format!("__cfg_{}", connector_id)) {
+                generic_api::execute_custom(tool_use_id, cfg_json, keys, input).await
+            } else {
+                ToolResult {
+                    tool_use_id: tool_use_id.to_string(),
+                    content: format!("Configuration introuvable pour le connecteur custom {}", connector_id),
+                    is_error: true,
+                    metadata: None,
+                }
+            }
+        }
+
         unknown => ToolResult {
             tool_use_id: tool_use_id.to_string(),
             content: format!("Outil inconnu : {}", unknown),

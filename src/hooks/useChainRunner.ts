@@ -42,7 +42,7 @@ export function useChainRunner(teamId: string) {
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
-  const { getKey: getConnectorKey } = useConnectorStore();
+  const { keys: allConnectorKeys, customConnectors } = useConnectorStore();
   const toast = useToastStore();
   const { stream, abort: abortStream } = useAnthropicStream();
   const { playChainStart, playChime } = useSounds();
@@ -266,16 +266,26 @@ export function useChainRunner(teamId: string) {
 
           // ── Phase 8 — Tool Use : router vers la bonne commande ───
           const agentConnectorIds = agent.connectors ?? [];
-          // Merge : connectorStore (nouvelle source) + settingsStore (backwards compat)
+          // Toutes les clés : connectorStore (principale) + settingsStore (compat)
+          const extra: Record<string, string> = { ...allConnectorKeys };
+          // Ajouter les clés settingsStore pour compat backwards
+          if (connectorKeys.openai)     extra.openai   = extra.openai   || connectorKeys.openai;
+          if (connectorKeys.bfl)        extra.bfl      = extra.bfl      || connectorKeys.bfl;
+          if (connectorKeys.e2b)        extra.e2b      = extra.e2b      || connectorKeys.e2b;
+          if (connectorKeys.notion)     extra.notion   = extra.notion   || connectorKeys.notion;
+          if (connectorKeys.github)     extra.github   = extra.github   || connectorKeys.github;
+          if (connectorKeys.tavily)     extra.tavily   = extra.tavily   || connectorKeys.tavily;
+          // Injecter configs connecteurs custom (sérialisées en JSON pour Rust)
+          for (const cc of customConnectors) {
+            extra[cc.keyField] = extra[cc.keyField] || "";
+            extra[`__cfg_${cc.id}`] = JSON.stringify(cc);
+          }
           const toolKeyMap: ToolKeys = {
-            openai:  getConnectorKey("openai")  || connectorKeys.openai,
-            bfl:     getConnectorKey("bfl")     || connectorKeys.bfl,
-            e2b:     getConnectorKey("e2b")     || connectorKeys.e2b,
-            notion:  getConnectorKey("notion")  || connectorKeys.notion,
-            github:  getConnectorKey("github")  || connectorKeys.github,
-            tavily:  getConnectorKey("tavily")  || connectorKeys.tavily,
+            openai: extra.openai, bfl: extra.bfl, e2b: extra.e2b,
+            notion: extra.notion, github: extra.github, tavily: extra.tavily,
+            extra,
           };
-          const agentTools = buildToolDefinitions(agentConnectorIds, toolKeyMap);
+          const agentTools = buildToolDefinitions(agentConnectorIds, toolKeyMap, customConnectors);
           const useToolsApi = agentTools.length > 0;
 
           let inputTokens = estimateTokens(prompt);
