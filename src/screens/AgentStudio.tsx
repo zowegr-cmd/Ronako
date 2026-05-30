@@ -575,7 +575,7 @@ function ConnectorsTab({ agent, isSystem, onAskNova, onUpdateAgent }: {
   const unconfiguredApis = API_CATALOG.filter((api) => {
     const hasKey = !!getKey(api.keyField);
     const matchSearch = !search || api.name.toLowerCase().includes(search.toLowerCase());
-    return !hasKey && !api.comingSoon && matchSearch;
+    return !hasKey && matchSearch;
   }).slice(0, 6); // Montrer seulement 6 non configurées
 
   return (

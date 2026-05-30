@@ -356,14 +356,11 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
             {api.hasToolDef && (
               <span className="text-[9px] bg-success/15 text-success px-1.5 py-0.5 rounded-full">⚡ Tool Use</span>
             )}
-            {api.comingSoon && (
-              <span className="text-[9px] bg-silk/10 text-silk/30 px-1.5 py-0.5 rounded-full">Bientôt</span>
-            )}
             {hasKey ? (
               <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                 <Check size={8} strokeWidth={3} /> Actif
               </span>
-            ) : !api.comingSoon && (
+            ) : (
               <span className="text-[9px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full">Clé manquante</span>
             )}
           </div>
@@ -371,12 +368,10 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-[9px] text-silk/25">{api.pricing}</span>
-          {!api.comingSoon && (
-            <button onClick={() => setExpanded(!expanded)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/30 hover:text-silk/60 hover:bg-crystal transition-all">
-              {expanded ? <ChevronDown size={13} /> : <Key size={12} />}
-            </button>
-          )}
+          <button onClick={() => setExpanded(!expanded)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/30 hover:text-silk/60 hover:bg-crystal transition-all">
+            {expanded ? <ChevronDown size={13} /> : <Key size={12} />}
+          </button>
           {api.docsUrl && (
             <a href={api.docsUrl} target="_blank" rel="noreferrer"
               className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/20 hover:text-silk/50 hover:bg-crystal transition-all">
@@ -388,7 +383,7 @@ function ApiCard({ api, currentKey, onSave }: { api: ApiEntry; currentKey: strin
 
       {/* Key config */}
       <AnimatePresence>
-        {expanded && !api.comingSoon && (
+        {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="border-t border-crystal/30 mx-4 mb-3 pt-3">
