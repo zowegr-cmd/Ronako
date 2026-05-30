@@ -15,7 +15,7 @@ interface AnalysisContext {
 const SYSTEM_PROMPT = `Tu es Marcus, Chef d'Orchestre. L'utilisateur veut un livrable spécifique.
 Analyse et retourne UNIQUEMENT ce JSON (sans texte autour) :
 {
-  "tip": "Conseil en français (2-3 phrases). Structure : ✅ Meilleure solution d'abord — si un connecteur donne le vrai format demandé (vrai .xlsx, vrai .pptx, vraie image), mets-le en premier. Puis 💡 alternative sans connecteur. Sois direct : si le connecteur est clairement supérieur, ne bury pas cette info.",
+  "tip": "Conseil en français (2-3 phrases). Structure : ✅ Ce qui fonctionne MAINTENANT dans Ronako (les agents produisent du texte/HTML/Markdown — pas encore de fichiers binaires natifs). Puis 🔜 ce qui sera possible avec E2B ou un connecteur. Sois honnête : ne dis pas qu'un fichier .xlsx sera généré automatiquement si ce n'est pas encore implémenté.",
   "suggestedSkills": ["skill-id-si-pertinent"],
   "suggestedConnectors": ["connector-id-si-meilleur-résultat"],
   "agentHint": "id-agent-le-plus-adapté",

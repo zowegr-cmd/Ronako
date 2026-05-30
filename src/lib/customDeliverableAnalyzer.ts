@@ -19,9 +19,8 @@ const RULES: Rule[] = [
   {
     pattern: /excel|xlsx|tableur|spreadsheet|feuille.*calcul|calc/i,
     insight: {
-      message: "✅ Meilleur résultat : E2B sandbox — Sam écrit un script Python (openpyxl/pandas) qui génère un vrai .xlsx avec formules, onglets et mise en forme.\n\n💡 Sans connecteur : Sam produit CSV ou Markdown → tu importes dans Excel (moins de contrôle sur le format).",
+      message: "✅ Ce qui fonctionne maintenant : Sam génère les données en CSV ou Markdown tableau → tu importes dans Excel en 1 clic (Fichier → Importer). Les formules sont à ajouter manuellement.\n\n🔜 À venir : génération .xlsx directe avec formules et styles via E2B sandbox.",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "sam",
     },
   },
@@ -36,27 +35,24 @@ const RULES: Rule[] = [
   {
     pattern: /word|docx|\.doc\b|document.*word/i,
     insight: {
-      message: "✅ Meilleur résultat : E2B sandbox — python-docx génère un vrai .docx avec styles, tableaux et mise en forme Word native.\n\n💡 Sans connecteur : Ella rédige en Markdown → colle dans Word/Google Docs (import natif, suffisant pour documents simples).",
+      message: "✅ Ce qui fonctionne maintenant : Ella rédige en Markdown → tu copies dans Word ou Google Docs (import natif .md ou simple copier-coller). Styles à ajuster manuellement.\n\n🔜 À venir : génération .docx directe avec styles et tableaux formatés via E2B.",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "ella",
     },
   },
   {
     pattern: /power\s*point|pptx|présentation.*slide|slide.*deck|slides?\b/i,
     insight: {
-      message: "✅ Meilleur résultat : E2B sandbox — Sam génère un vrai .pptx via python-pptx (slides, layouts, images, thème). Ou Gamma.app API pour des slides design-ready générées par IA.\n\n💡 Sans connecteur : Sam rédige en Marp (Markdown) → VS Code → exporte en .pptx gratuitement.",
+      message: "✅ Ce qui fonctionne maintenant : Sam rédige en format Marp (Markdown avec séparateurs ---). Tu installes l'extension Marp gratuite dans VS Code → 1 clic pour exporter en .pptx ou .pdf.\n\n🔜 À venir : génération .pptx directe avec thème et images via E2B ou Gamma.app API.",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "sam",
     },
   },
   {
     pattern: /pdf\b/i,
     insight: {
-      message: "✅ Meilleur résultat : E2B sandbox — génère un PDF pixel-perfect via WeasyPrint (CSS avancé, en-têtes, pagination automatique).\n\n💡 Sans connecteur : Ella produit du HTML mis en page → Ctrl+P dans le navigateur → PDF (suffisant pour 90% des cas).",
+      message: "✅ Ce qui fonctionne maintenant : Ella produit du HTML mis en page → tu l'exportes en .html depuis Ronako → tu l'ouvres dans Chrome/Edge → Ctrl+P → \"Enregistrer en PDF\". Résultat propre, zéro coût.\n\n🔜 À venir : génération .pdf directe depuis Ronako (WeasyPrint).",
       blocking: false,
-      connectorIds: ["e2b"],
       agentHint: "ella",
     },
   },
