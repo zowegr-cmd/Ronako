@@ -133,7 +133,7 @@ function PacksSubTab() {
   const [packName, setPackName] = useState("");
   const [packIcon, setPackIcon] = useState("📦");
   const [packDesc, setPackDesc] = useState("");
-  const { customPacks, addCustomPack, updateCustomPack, deleteCustomPack, installCustomPack, skills } = useAgentStore();
+  const { customPacks, addCustomPack, updateCustomPack, deleteCustomPack, installCustomPack } = useAgentStore();
 
   const handleSavePack = () => {
     if (!packName.trim()) return;
@@ -179,34 +179,14 @@ function PacksSubTab() {
       {customPacks.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-[10px] text-silk/30 uppercase tracking-widest">Mes packs ({customPacks.length})</p>
-          {customPacks.map((pack) => {
-            const packSkillIds = pack.skills.map((s) => s.id);
-            const installedCount = skills.filter((sk) => packSkillIds.includes(sk.id)).length;
-            return (
-              <div key={pack.id} className="bg-graphite border border-crystal/50 rounded-xl px-4 py-3 flex items-center gap-3">
-                <span className="text-xl">{pack.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-silk">{pack.name}</p>
-                  <p className="text-[10px] text-silk/40">{pack.description || "Pack custom"} · {pack.skills.length} skills</p>
-                  {installedCount > 0 && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Installé</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => installCustomPack(pack.id)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-electric/60 hover:text-electric hover:bg-electric/10 transition-all" title="Installer">
-                    <Download size={13} />
-                  </button>
-                  <button onClick={() => { setEditingPack(pack); setPackName(pack.name); setPackIcon(pack.icon); setPackDesc(pack.description); setShowPackForm(true); }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/25 hover:text-silk/60 transition-all">
-                    <Pencil size={12} />
-                  </button>
-                  <button onClick={() => deleteCustomPack(pack.id)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {customPacks.map((pack) => (
+            <CustomPackCard key={pack.id} pack={pack}
+              expanded={expandedPack === pack.id}
+              onToggle={() => setExpandedPack(expandedPack === pack.id ? null : pack.id)}
+              onEdit={() => { setEditingPack(pack); setPackName(pack.name); setPackIcon(pack.icon); setPackDesc(pack.description); setShowPackForm(true); }}
+              onDelete={() => deleteCustomPack(pack.id)}
+              onInstall={() => installCustomPack(pack.id)} />
+          ))}
         </div>
       )}
 
@@ -217,6 +197,119 @@ function PacksSubTab() {
           expanded={expandedPack === pack.id}
           onToggle={() => setExpandedPack(expandedPack === pack.id ? null : pack.id)} />
       ))}
+    </div>
+  );
+}
+
+// ── Custom Pack Card ─────────────────────────────────────────────────────────
+
+function CustomPackCard({ pack, expanded, onToggle, onEdit, onDelete, onInstall }: {
+  pack: SkillPack; expanded: boolean;
+  onToggle: () => void; onEdit: () => void;
+  onDelete: () => void; onInstall: () => void;
+}) {
+  const { skills, addSkillToPack, removeSkillFromPack } = useAgentStore();
+  const [showAddSkill, setShowAddSkill] = useState(false);
+  const [selectedSkillId, setSelectedSkillId] = useState("");
+
+  const packSkillIds = pack.skills.map((s) => s.id);
+  const installedCount = skills.filter((sk) => packSkillIds.includes(sk.id)).length;
+  // Skills installés non encore dans ce pack
+  const availableToAdd = skills.filter((sk) => !packSkillIds.includes(sk.id));
+
+  return (
+    <div className={cn("rounded-xl border transition-all",
+      expanded ? "border-electric/30 bg-electric/3" : "border-crystal/50 bg-graphite")}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <span className="text-xl">{pack.icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-silk">{pack.name}</p>
+          <p className="text-[10px] text-silk/40">
+            {pack.description || "Pack custom"} · {pack.skills.length} skill{pack.skills.length !== 1 ? "s" : ""}
+          </p>
+          {installedCount > 0 && <span className="text-[8px] bg-electric/15 text-electric px-1.5 py-0.5 rounded-full">Installé</span>}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button onClick={onInstall} title="Installer les skills"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-electric/50 hover:text-electric hover:bg-electric/10 transition-all">
+            <Download size={13} />
+          </button>
+          <button onClick={onEdit}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/25 hover:text-silk/60 transition-all">
+            <Pencil size={12} />
+          </button>
+          <button onClick={onDelete}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
+            <Trash2 size={12} />
+          </button>
+          <button onClick={onToggle}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-silk/30 hover:text-silk/60 transition-all">
+            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Contenu expandé */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+            <div className="border-t border-crystal/30 mx-4 mb-3 pt-3 flex flex-col gap-2">
+              {/* Skills du pack */}
+              {pack.skills.length === 0 ? (
+                <p className="text-[11px] text-silk/30 text-center py-2">Ce pack est vide — ajoute des skills ci-dessous.</p>
+              ) : pack.skills.map((skill) => (
+                <div key={skill.id} className="flex items-center gap-2 px-2 py-1.5 bg-graphite-light rounded-lg border border-crystal/40">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-silk/80 truncate">{skill.name}</p>
+                    <div className="flex gap-1 flex-wrap mt-0.5">
+                      {skill.agentIds.slice(0, 4).map((aid) => (
+                        <span key={aid} className="text-[8px] bg-crystal/40 text-silk/40 px-1 py-0.5 rounded">{aid}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={() => removeSkillFromPack(pack.id, skill.id)}
+                    className="w-5 h-5 rounded flex items-center justify-center text-silk/20 hover:text-danger transition-all shrink-0" title="Retirer du pack">
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Ajouter un skill */}
+              {availableToAdd.length > 0 && (
+                <div className="flex gap-2 mt-1">
+                  {showAddSkill ? (
+                    <>
+                      <select value={selectedSkillId} onChange={(e) => setSelectedSkillId(e.target.value)}
+                        className="flex-1 bg-graphite border border-crystal/60 rounded-lg px-2 py-1 text-xs text-silk/60 focus:outline-none focus:border-electric/50">
+                        <option value="">Choisir un skill…</option>
+                        {availableToAdd.map((sk) => (
+                          <option key={sk.id} value={sk.id}>{sk.name}</option>
+                        ))}
+                      </select>
+                      <Button variant="primary" size="sm" disabled={!selectedSkillId}
+                        onClick={() => {
+                          const sk = skills.find((s) => s.id === selectedSkillId);
+                          if (sk) addSkillToPack(pack.id, sk);
+                          setSelectedSkillId(""); setShowAddSkill(false);
+                        }}>
+                        <Check size={11} /> Ajouter
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAddSkill(false)}>✕</Button>
+                    </>
+                  ) : (
+                    <button onClick={() => setShowAddSkill(true)}
+                      className="flex items-center gap-1.5 text-[10px] text-electric/50 hover:text-electric transition-colors">
+                      <Plus size={11} /> Ajouter un skill au pack
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -343,18 +436,37 @@ function SkillEditorForm({ skill, onSave, onCancel }: {
   onSave: (data: Omit<import("@/types").Skill, "id" | "createdAt" | "useCount" | "avgScoreImpact" | "createdBy">) => void;
   onCancel: () => void;
 }) {
-  const { agents } = useAgentStore();
+  const { agents, customPacks, addSkillToPack } = useAgentStore();
   const [name, setName] = useState(skill?.name ?? "");
   const [description, setDescription] = useState(skill?.description ?? "");
   const [content, setContent] = useState(skill?.content ?? "");
   const [agentIds, setAgentIds] = useState<string[]>(skill?.agentIds ?? []);
   const [inheritToAll, setInheritToAll] = useState(skill?.inheritToAll ?? false);
   const [keywords, setKeywords] = useState((skill?.triggerKeywords ?? []).join(", "));
+  const [targetPackId, setTargetPackId] = useState("");
 
   const toggleAgent = (id: string) =>
     setAgentIds((prev) => prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]);
 
   const nonSystemAgents = agents.filter((a) => !a.isSystem);
+
+  const handleSave = () => {
+    const data = {
+      name, description, content, agentIds, inheritToAll, isActive: true, isTemporary: false,
+      triggerKeywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+      sector: undefined as string | undefined,
+    };
+    onSave(data);
+    // Si un pack est sélectionné, on ajoute aussi le skill au pack
+    // Le skill sera créé par onSave, on l'ajoute après via un timer léger
+    if (targetPackId) {
+      setTimeout(() => {
+        const { skills } = useAgentStore.getState();
+        const created = skills.find((s) => s.name === name && s.content === content);
+        if (created) addSkillToPack(targetPackId, created);
+      }, 50);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
@@ -372,6 +484,7 @@ function SkillEditorForm({ skill, onSave, onCancel }: {
       <input value={keywords} onChange={(e) => setKeywords(e.target.value)}
         placeholder="Mots-clés déclencheurs (séparés par virgule)" className="input-sm" />
 
+      {/* Assigner aux agents */}
       <div>
         <p className="text-[10px] text-silk/40 mb-1.5">Assigner aux agents :</p>
         <div className="flex flex-wrap gap-1.5">
@@ -385,6 +498,20 @@ function SkillEditorForm({ skill, onSave, onCancel }: {
         </div>
       </div>
 
+      {/* Ajouter à un pack */}
+      {customPacks.length > 0 && (
+        <div>
+          <p className="text-[10px] text-silk/40 mb-1.5">Ajouter à un pack (optionnel) :</p>
+          <select value={targetPackId} onChange={(e) => setTargetPackId(e.target.value)}
+            className="w-full bg-graphite-light border border-crystal/60 rounded-lg px-2.5 py-1.5 text-xs text-silk/60 focus:outline-none focus:border-electric/50">
+            <option value="">Aucun pack</option>
+            {customPacks.map((p) => (
+              <option key={p.id} value={p.id}>{p.icon} {p.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <label className="flex items-center gap-2 text-xs text-silk/60 cursor-pointer">
         <input type="checkbox" checked={inheritToAll} onChange={(e) => setInheritToAll(e.target.checked)}
           className="accent-electric" />
@@ -394,11 +521,7 @@ function SkillEditorForm({ skill, onSave, onCancel }: {
       <div className="flex gap-2 justify-end pt-1 border-t border-crystal/30">
         <Button variant="ghost" size="sm" onClick={onCancel}>Annuler</Button>
         <Button variant="primary" size="sm" disabled={!name.trim() || !content.trim()}
-          onClick={() => onSave({
-            name, description, content, agentIds, inheritToAll, isActive: true, isTemporary: false,
-            triggerKeywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
-            sector: undefined,
-          })}>
+          onClick={handleSave}>
           {skill ? "Sauvegarder" : "Créer"}
         </Button>
       </div>

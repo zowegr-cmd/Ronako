@@ -43,6 +43,8 @@ interface AgentStore {
   updateCustomPack: (id: string, updates: Partial<SkillPack>) => void;
   deleteCustomPack: (id: string) => void;
   installCustomPack: (packId: string) => void;
+  addSkillToPack: (packId: string, skill: Skill) => void;
+  removeSkillFromPack: (packId: string, skillId: string) => void;
 }
 
 export const useAgentStore = create<AgentStore>()(
@@ -194,6 +196,21 @@ export const useAgentStore = create<AgentStore>()(
           return { skills: [...s.skills, ...toAdd] };
         });
       },
+      addSkillToPack: (packId, skill) =>
+        set((s) => ({
+          customPacks: s.customPacks.map((p) => {
+            if (p.id !== packId) return p;
+            if (p.skills.some((sk) => sk.id === skill.id)) return p; // déjà dans le pack
+            const { createdAt: _a, useCount: _b, avgScoreImpact: _c, ...skillDef } = skill;
+            return { ...p, skills: [...p.skills, skillDef] };
+          }),
+        })),
+      removeSkillFromPack: (packId, skillId) =>
+        set((s) => ({
+          customPacks: s.customPacks.map((p) =>
+            p.id !== packId ? p : { ...p, skills: p.skills.filter((sk) => sk.id !== skillId) },
+          ),
+        })),
     }),
     { name: "ronako-agents-v1" }
   )
