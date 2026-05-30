@@ -36,19 +36,29 @@ function buildTeamCapabilitiesBlock(
 ): string {
   const agentLines: string[] = [];
 
+  // Tous les outils configurés (fallback pour agents sans connecteurs assignés)
+  const allConfigured = Object.keys({ ...allKeys, ...legacyKeys })
+    .filter((k) => !k.startsWith("__") && !!({ ...allKeys, ...legacyKeys }[k]));
+
   for (const agent of agents) {
     const activeSkills = allSkills.filter(
       (sk) => (sk.isActive || sk.inheritToAll) && sk.agentIds.includes(agent.id) && !sk.isTemporary,
     );
-    const connectors = (agent.connectors ?? []).filter(
-      (c) => !!(allKeys[c] || legacyKeys[c as keyof typeof legacyKeys]),
+    const explicit = (agent.connectors ?? []).filter(
+      (c) => !!(allKeys[c] || legacyKeys[c]),
     );
+    // Même logique que useChainRunner : pas de connecteurs = accès à tout
+    const effectiveConnectors = explicit.length > 0 ? explicit : allConfigured;
 
     const parts: string[] = [];
     if (activeSkills.length > 0)
       parts.push(`skills: ${activeSkills.map((s) => s.name).join(", ")}`);
-    if (connectors.length > 0)
-      parts.push(`outils: ${connectors.map((c) => CONNECTOR_LABELS[c] ?? c).join(", ")}`);
+    if (effectiveConnectors.length > 0) {
+      const label = explicit.length > 0
+        ? effectiveConnectors.map((c) => CONNECTOR_LABELS[c] ?? c).join(", ")
+        : `accès universel (${effectiveConnectors.slice(0, 4).map((c) => CONNECTOR_LABELS[c] ?? c).join(", ")}${effectiveConnectors.length > 4 ? "..." : ""})`;
+      parts.push(`outils: ${label}`);
+    }
 
     if (parts.length > 0)
       agentLines.push(`  • ${agent.name} — ${parts.join(" | ")}`);
@@ -287,7 +297,15 @@ export function useChainRunner(teamId: string) {
         const agent = agentsWithMode[i];
 
         // ── Connecteurs de l'agent + définitions outils ───────────
-        const agentConnectorIdsEarly = agent.connectors ?? [];
+        const explicitConnectors = agent.connectors ?? [];
+
+        // FALLBACK UNIVERSEL : si l'agent n'a aucun connecteur explicitement assigné
+        // (nouvel agent, agent custom, etc.) → il accède à TOUS les outils configurés.
+        // Si l'agent a des connecteurs assignés → il n'utilise que ceux-là.
+        const allConfiguredIds = Object.keys({ ...allConnectorKeys, ...connectorKeys as unknown as Record<string, string> })
+          .filter((k) => !k.startsWith("__") && !!({ ...allConnectorKeys, ...connectorKeys as unknown as Record<string, string> }[k]));
+        const agentConnectorIdsEarly = explicitConnectors.length > 0 ? explicitConnectors : allConfiguredIds;
+
         const hasNewTavilyConnector = agentConnectorIdsEarly.includes("tavily") &&
           (allConnectorKeys.tavily || connectorKeys.tavily);
 

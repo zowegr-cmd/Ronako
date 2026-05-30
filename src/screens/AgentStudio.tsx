@@ -613,20 +613,29 @@ function ConnectorsTab({ agent, isSystem, onAskNova, onUpdateAgent }: {
 
       {/* APIs configurées */}
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] text-silk/35 uppercase tracking-widest">APIs connectées</p>
           <span className="text-[9px] text-silk/20">{configuredApis.length} disponibles</span>
         </div>
+
+        {/* Badge accès universel pour agents sans connecteurs assignés */}
+        {(agent.connectors ?? []).length === 0 && configuredApis.length > 0 && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 mb-2 bg-success/8 border border-success/20 rounded-lg">
+            <span className="text-[9px] text-success/70">✅ Accès universel</span>
+            <p className="text-[9px] text-silk/40 flex-1">Cet agent utilise tous les outils configurés. Assigne des APIs spécifiques pour restreindre.</p>
+          </div>
+        )}
+
         <input value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Filtrer les APIs…"
           className="w-full bg-graphite-light border border-crystal/50 rounded-lg px-2.5 py-1.5 text-xs text-silk/60 placeholder-silk/20 focus:outline-none focus:border-electric/40 mb-2" />
 
         {configuredApis.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-xs text-silk/30">Aucune API configurée.</p>
+            <p className="text-xs text-silk/30">Aucune API configurée. Configure des clés dans le Pack Manager.</p>
             <button onClick={() => document.dispatchEvent(new CustomEvent("navigate-packs"))}
               className="text-[10px] text-electric/60 hover:text-electric mt-1 transition-colors">
-              Configurer dans le Pack Manager →
+              Pack Manager →
             </button>
           </div>
         ) : (
