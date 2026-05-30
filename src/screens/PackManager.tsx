@@ -13,6 +13,7 @@ import { useConnectorStore, type CustomHttpConnector } from "@/store/connectorSt
 import { useToastStore } from "@/store/toastStore";
 import { estimateTokens } from "@/lib/tokenCounter";
 import { exportCustomPack } from "@/lib/exportImport";
+import { buildPromptWithSkills, extractTemplateVars } from "@/lib/chainEngine";
 import { API_CATALOG, CATEGORY_META, type ApiEntry, type ApiCategory } from "@/lib/apiCatalog";
 import { MCP_CATALOG, type McpServer } from "@/lib/mcpCatalog";
 import type { SkillPack } from "@/types";
@@ -338,6 +339,7 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
   const [importing, setImporting] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ name: string; description: string; content: string } | null>(null);
   const [pendingAgentIds, setPendingAgentIds] = useState<string[]>([]);
+  const [previewSkillId, setPreviewSkillId] = useState<string | null>(null);
   const { skills, addSkill, deleteSkill, agents } = useAgentStore();
   const toast = useToastStore();
 
@@ -524,6 +526,10 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                <button onClick={() => setPreviewSkillId(previewSkillId === skill.id ? null : skill.id)}
+                  className="w-6 h-6 rounded flex items-center justify-center text-silk/25 hover:text-mystic/60" title="Prévisualiser le prompt">
+                  <Eye size={11} />
+                </button>
                 <button onClick={() => onEdit(skill)}
                   className="w-6 h-6 rounded flex items-center justify-center text-silk/25 hover:text-electric/60">
                   <Pencil size={11} />
@@ -537,9 +543,67 @@ function LibrarySubTab({ onEdit }: { onEdit: (sk: import("@/types").Skill) => vo
                   {skill.isActive ? <ToggleRight size={16} className="text-electric" /> : <ToggleLeft size={16} />}
                 </button>
               </div>
+
+              {/* Panel preview prompt */}
+              <AnimatePresence>
+                {previewSkillId === skill.id && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                    <SkillPromptPreview skill={skill} agents={nonSystemAgents} skills={skills} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Prompt Preview ────────────────────────────────────────────────────────────
+
+function SkillPromptPreview({ skill, agents, skills }: {
+  skill: import("@/types").Skill;
+  agents: import("@/types").Agent[];
+  skills: import("@/types").Skill[];
+}) {
+  const [selectedAgentId, setSelectedAgentId] = useState(skill.agentIds[0] ?? "");
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const universalSkills = skills.filter((s) => s.isActive && s.inheritToAll);
+
+  const preview = selectedAgent
+    ? buildPromptWithSkills(selectedAgent, skills, universalSkills)
+    : null;
+
+  const tokens = preview ? Math.ceil(preview.length / 3.8) : 0;
+
+  return (
+    <div className="mx-3 mt-1 mb-2 bg-graphite-light border border-mystic/20 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-crystal/30">
+        <span className="text-[10px] font-semibold text-mystic/70">👁 Prompt final de l'agent</span>
+        <div className="flex items-center gap-2">
+          <select value={selectedAgentId} onChange={(e) => setSelectedAgentId(e.target.value)}
+            className="bg-graphite border border-crystal/50 rounded-lg px-2 py-0.5 text-[10px] text-silk/60 focus:outline-none">
+            {skill.agentIds.length === 0 && <option value="">Aucun agent assigné</option>}
+            {skill.agentIds.map((id) => {
+              const a = agents.find((ag) => ag.id === id);
+              return a ? <option key={id} value={id}>{a.name}</option> : null;
+            })}
+          </select>
+          <span className={cn("text-[9px]", tokens > 3800 ? "text-danger/70" : tokens > 2800 ? "text-warning/70" : "text-silk/30")}>
+            {tokens} / 3800 tok
+          </span>
+        </div>
+      </div>
+      {preview ? (
+        <pre className="px-3 py-2 text-[9px] text-silk/50 font-mono leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+          {preview}
+        </pre>
+      ) : (
+        <p className="px-3 py-3 text-[10px] text-silk/30 text-center">
+          Assigne cet agent au skill pour voir le prompt.
+        </p>
       )}
     </div>
   );
@@ -1115,23 +1179,26 @@ function CustomConnectorForm({ onSave, onCancel }: {
   const [keyField, setKeyField] = useState("");
   const [bodyTemplate, setBodyTemplate] = useState("");
 
+  // Preview du schéma généré en temps réel
+  const urlVars = extractTemplateVars(url);
+  const bodyVars = extractTemplateVars(bodyTemplate);
+  const allVars = [...new Set([...urlVars, ...bodyVars])];
+
   return (
     <div className="bg-graphite border border-electric/30 rounded-xl p-4 flex flex-col gap-3">
       <p className="text-xs font-semibold text-silk">Nouveau connecteur HTTP</p>
 
       <div className="grid grid-cols-2 gap-2">
         <input value={name} onChange={(e) => setName(e.target.value)}
-          placeholder="Nom (ex: Mon API)" className="input-sm col-span-2" />
+          placeholder="Nom (ex: Mon API Stripe)" className="input-sm col-span-2" />
         <input value={description} onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description" className="input-sm col-span-2" />
+          placeholder="Description (ce que l'agent peut faire avec)" className="input-sm col-span-2" />
         <input value={url} onChange={(e) => setUrl(e.target.value)}
-          placeholder="URL (https://api.example.com/endpoint)" className="input-sm col-span-2" />
-        <select value={method} onChange={(e) => setMethod(e.target.value as CustomHttpConnector["method"])}
-          className="input-sm">
+          placeholder="https://api.example.com/{{endpoint}}" className="input-sm col-span-2" />
+        <select value={method} onChange={(e) => setMethod(e.target.value as CustomHttpConnector["method"])} className="input-sm">
           {["GET","POST","PUT","PATCH","DELETE"].map((m) => <option key={m}>{m}</option>)}
         </select>
-        <select value={authType} onChange={(e) => setAuthType(e.target.value as CustomHttpConnector["authType"])}
-          className="input-sm">
+        <select value={authType} onChange={(e) => setAuthType(e.target.value as CustomHttpConnector["authType"])} className="input-sm">
           <option value="bearer">Bearer Token</option>
           <option value="apikey_header">Header API Key</option>
           <option value="none">Aucune auth</option>
@@ -1142,12 +1209,38 @@ function CustomConnectorForm({ onSave, onCancel }: {
         )}
         {authType !== "none" && (
           <input value={keyField} onChange={(e) => setKeyField(e.target.value)}
-            placeholder="ID clé keyring (ex: mon_api)" className="input-sm col-span-2" />
+            placeholder="ID clé keyring (ex: stripe) — configurer dans onglet APIs" className="input-sm col-span-2" />
         )}
-        <textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)}
-          placeholder='Body JSON (optionnel) ex: {"query": "{{input}}"}' rows={3}
-          className="input-sm col-span-2 resize-none" />
+        <div className="col-span-2 flex flex-col gap-1">
+          <textarea value={bodyTemplate} onChange={(e) => setBodyTemplate(e.target.value)}
+            placeholder={'Body JSON avec variables {{nom}}\nex: {"to": "{{email}}", "subject": "{{subject}}", "body": "{{content}}"}'}
+            rows={3} className="input-sm resize-none" />
+          <p className="text-[9px] text-silk/30">💡 Utilise {"{{variable}}"} pour que Claude remplisse les valeurs dynamiquement.</p>
+        </div>
       </div>
+
+      {/* Preview du tool definition généré */}
+      {name && url && (
+        <div className="bg-graphite-light border border-crystal/40 rounded-xl p-3">
+          <p className="text-[9px] text-silk/30 mb-1.5 uppercase tracking-widest">Schéma que Claude va recevoir</p>
+          <pre className="text-[9px] text-electric/60 font-mono leading-relaxed whitespace-pre-wrap">
+{`{
+  "name": "custom_[id]",
+  "description": "${description || name}",
+  "input": {
+${allVars.length > 0
+  ? allVars.map((v) => `    "${v}": string`).join(",\n")
+  : '    "input": string  ← aucune variable détectée'}
+  }
+}`}
+          </pre>
+          {allVars.length > 0 && (
+            <p className="text-[9px] text-success/60 mt-1">
+              ✅ {allVars.length} variable{allVars.length > 1 ? "s" : ""} détectée{allVars.length > 1 ? "s" : ""} : {allVars.join(", ")}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2 justify-end">
         <Button variant="ghost" size="sm" onClick={onCancel}>Annuler</Button>
@@ -1167,6 +1260,11 @@ function CustomConnectorCard({ connector, testing, testResult, onTest, onDelete 
   onTest: () => void;
   onDelete: () => void;
 }) {
+  const allVars = [...new Set([
+    ...extractTemplateVars(connector.url),
+    ...extractTemplateVars(connector.bodyTemplate ?? ""),
+  ])];
+
   return (
     <div className="bg-graphite border border-crystal/50 rounded-xl px-4 py-3">
       <div className="flex items-center gap-3">
@@ -1174,9 +1272,18 @@ function CustomConnectorCard({ connector, testing, testResult, onTest, onDelete 
           <Server size={14} className="text-silk/50" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-silk">{connector.name}</span>
             <span className="text-[9px] bg-graphite-light text-silk/40 px-1.5 py-0.5 rounded-full font-mono">{connector.method}</span>
+            {allVars.length > 0 ? (
+              <span className="text-[9px] bg-success/10 text-success/60 px-1.5 py-0.5 rounded-full">
+                ⚡ {allVars.length} var{allVars.length > 1 ? "s" : ""}: {allVars.join(", ")}
+              </span>
+            ) : (
+              <span className="text-[9px] bg-warning/10 text-warning/50 px-1.5 py-0.5 rounded-full">
+                ⚠️ Aucune variable — Claude ne saura pas quoi envoyer
+              </span>
+            )}
           </div>
           <p className="text-[10px] text-silk/40 truncate">{connector.url}</p>
           {connector.description && <p className="text-[10px] text-silk/30">{connector.description}</p>}

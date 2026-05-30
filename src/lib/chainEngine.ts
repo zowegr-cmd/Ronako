@@ -292,6 +292,12 @@ function genericApiTool(id: string, name: string, description: string): ToolDefi
   };
 }
 
+/** Extrait les variables `{{nom}}` d'un template */
+export function extractTemplateVars(template: string): string[] {
+  const matches = template.match(/\{\{(\w+)\}\}/g) ?? [];
+  return [...new Set(matches.map((m) => m.slice(2, -2)))];
+}
+
 /**
  * Construit les définitions d'outils pour un agent selon ses connecteurs actifs.
  * Tout connecteur peut être assigné à tout agent — aucune restriction.
@@ -307,40 +313,51 @@ export function buildToolDefinitions(
   for (const id of connectorIds) {
     // Outils avec implémentation Rust dédiée (Phase 8)
     if (TOOL_DEFINITIONS[id]) {
-      const key = toolKeys[id as keyof ToolKeys] as string | undefined
+      const key = (toolKeys[id as keyof ToolKeys] as string | undefined)
         ?? toolKeys.extra?.[id];
       if (key) defs.push(TOOL_DEFINITIONS[id]);
       continue;
     }
 
-    // API générique du catalogue (sans implémentation dédiée)
-    if (id.startsWith("custom_")) continue; // traité séparément
+    // API générique du catalogue
+    if (id.startsWith("custom_")) continue;
 
     const extraKey = toolKeys.extra?.[id];
     if (extraKey) {
-      // Chercher le nom/description dans l'extra (passé par chainRunner)
       const apiName = toolKeys.extra?.[`__name_${id}`] ?? id;
       const apiDesc = toolKeys.extra?.[`__desc_${id}`] ?? `API ${id}`;
       defs.push(genericApiTool(id, apiName, apiDesc));
     }
   }
 
-  // Connecteurs HTTP custom
+  // Connecteurs HTTP custom — schéma généré depuis les variables du template
   if (customConnectors) {
     for (const c of customConnectors) {
       if (!connectorIds.includes(`custom_${c.id}`)) continue;
       const hasKey = !!(toolKeys.extra?.[c.keyField] || c.authType === "none");
       if (!hasKey) continue;
+
+      // Extraire les variables {{...}} de l'URL et du body
+      const urlVars = extractTemplateVars(c.url);
+      const bodyVars = extractTemplateVars(c.bodyTemplate ?? "");
+      const allVars = [...new Set([...urlVars, ...bodyVars])];
+
+      const properties: Record<string, { type: string; description: string }> = {};
+      for (const v of allVars) {
+        properties[v] = { type: "string", description: `Valeur pour le paramètre "${v}"` };
+      }
+      // Fallback si aucune variable détectée
+      if (allVars.length === 0) {
+        properties.input = { type: "string", description: "Données à envoyer à l'API" };
+      }
+
       defs.push({
         name: `custom_${c.id}`,
-        description: c.description || `API custom : ${c.name}`,
+        description: `${c.description || `Connecteur HTTP : ${c.name}`} [${c.method} ${c.url.split("?")[0].slice(0, 60)}]`,
         input_schema: {
           type: "object",
-          properties: {
-            input: { type: "string", description: "Données à envoyer à l'API" },
-            endpoint_override: { type: "string", description: "Override de l'endpoint (optionnel)" },
-          },
-          required: [],
+          properties,
+          required: allVars.slice(0, 3), // max 3 requis
         },
       });
     }
