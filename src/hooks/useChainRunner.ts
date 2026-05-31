@@ -413,6 +413,18 @@ export function useChainRunner(teamId: string) {
         // ── Construire le prompt ──────────────────────────────────
         const combinedFolderContext = [folderContext, searchContext].filter(Boolean).join("\n\n") || undefined;
 
+        // Liste des agents de la chaîne — injectée dans le prompt de Marcus (agent 0)
+        let chainAgentList: string | undefined;
+        if (i === 0) {
+          const chainList = agentsWithMode
+            .slice(1)
+            .map((a) => `- ${a.name} [${a.id}] — ${a.role}${a.description ? `: ${a.description}` : ""}`)
+            .join("\n");
+          if (chainList) {
+            chainAgentList = `[AGENTS DE LA CHAÎNE]\n${chainList}\n[/AGENTS DE LA CHAÎNE]`;
+          }
+        }
+
         const prompt = buildAgentPrompt(
           agent,
           {
@@ -423,6 +435,7 @@ export function useChainRunner(teamId: string) {
             activeToolNames: activeToolNames.length > 0 ? activeToolNames : undefined,
             teamCapabilities: teamCapabilities || undefined,
             selectedFormats: selectedFormats.length > 0 ? selectedFormats : undefined,
+            chainAgentList,
           },
           previousOutput,
           i,
@@ -725,6 +738,7 @@ export function useChainRunner(teamId: string) {
 
         // ── Mise à jour mémoire utilisateur (2.12) ────────────────
         const ryoScore = useChainStore.getState().ryoResult?.score ?? 0;
+        const ryoWeaknesses = useChainStore.getState().ryoResult?.weaknesses ?? [];
         await updateMemoryAfterChain({
           mode: chainMode,
           score: ryoScore,
@@ -732,13 +746,41 @@ export function useChainRunner(teamId: string) {
           agentsUsed: agentsWithMode.map((a) => a.id),
         });
 
+        // ── Marcus analyse le score Ryo — After Action Review ────────
+        if (ryoScore > 0 && useRealApi) {
+          try {
+            const MARCUS_AAR_PROMPT = `Tu es Marcus, Directeur de Projet IA.
+La chaîne vient de se terminer. Donne une analyse AAR en 1-2 phrases MAXIMUM.
+
+Score : ${ryoScore}/10
+Points faibles : ${ryoWeaknesses.length ? ryoWeaknesses.slice(0, 2).join(" | ") : "aucun"}
+Brief : ${userBrief.slice(0, 150)}
+Agents : ${agentsWithMode.map((a) => a.name).join(", ")}
+
+Règles ABSOLUES :
+Score ≥ 9 : "[${ryoScore}]/10 — [1 point fort précis].${ryoScore >= 9 && customAgentIds && customAgentIds.length > 2 ? " Sauvegarder cette équipe ?" : ""}"
+Score 7-8 : "[${ryoScore}]/10 — Cause : [précis]. Fix : relancer [agent concerné] avec [instruction courte]. ~$0.01"
+Score < 7 : "[${ryoScore}]/10 — Cause : [AAR précis]. Recommande : [action 1] + [action 2]."
+Jamais vague. Jamais "le score est...". Commence directement par le score.`;
+
+            const aarResult = await runApiCall(
+              MARCUS_AAR_PROMPT,
+              "Analyse maintenant.",
+              "claude-haiku-4-5-20251001" as import("@/types").ModelId,
+            );
+            if (aarResult.text && !aarResult.text.startsWith("ERROR:")) {
+              useChainStore.getState().addWorkspaceMessage({
+                role: "assistant",
+                agentId: "marcus",
+                content: aarResult.text.trim(),
+              });
+            }
+          } catch { /* silencieux */ }
+        }
+
         // ── Marcus propose de sauvegarder l'équipe si score ≥ 8 (2.13) ─
         if (ryoScore >= 8 && customAgentIds && customAgentIds.length > 2) {
-          useChainStore.getState().addWorkspaceMessage({
-            role: "system",
-            content: `⭐ Score ${ryoScore}/10 — Excellent résultat ! Tu veux sauvegarder cette configuration d'équipe pour la réutiliser ?`,
-          });
-          // Déclencher l'event pour que l'Orchestrator propose la sauvegarde
+          // L'invitation est déjà dans le message AAR — on dispatch juste l'event
           document.dispatchEvent(new CustomEvent("suggest-save-team", {
             detail: { agentIds: customAgentIds, score: ryoScore },
           }));

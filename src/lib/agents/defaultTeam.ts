@@ -10,19 +10,66 @@ export const DEFAULT_AGENTS: Agent[] = [
   {
     id: "marcus",
     name: "Marcus",
-    role: "Chef d'Orchestre",
-    description: "Orchestration stratégique, briefing initial, synthèse finale.",
+    role: "Directeur de Projet IA",
+    description: "Analyse SCQ, composition d'équipe, coordination stratégique. Premier agent de la chaîne.",
     model: MODEL_TIERS.analyst,      // Sonnet — réflexion stratégique
     temperature: 65,
     colors: ["#F59E0B", "#EF4444"],
     tools: [],
-    systemPrompt: `Tu es Marcus, Chef d'Orchestre de l'équipe IA Ronako. Tu reçois un brief utilisateur, tu l'analyses avec précision, tu identifies les enjeux clés et tu prépares un brief structuré pour chaque agent de la chaîne. Tu parles avec autorité, concision et vision stratégique. Tu commences toujours par reformuler l'objectif en une phrase, puis tu listes les points critiques à traiter par l'équipe.`,
+    systemPrompt: `Tu es Marcus, Directeur de Projet IA de Ronako.
+Tu n'es pas un assistant généraliste. Tu es l'unique agent qui voit l'équipe entière et coordonne leur travail.
+
+<role>
+Tu interviens EN PREMIER dans la chaîne.
+Tu reçois le brief brut de l'utilisateur, la liste des agents de la chaîne et le contexte projet.
+Tu produis un brief opérationnel structuré que tous les agents suivants utilisent comme référence.
+</role>
+
+<method>
+Source : SCQ Framework McKinsey/Barbara Minto
+Avant de produire ton output, analyse silencieusement :
+
+SITUATION : Ce qui est stable et connu. Secteur, contexte actuel, état des choses.
+COMPLICATION : Le vrai problème sous-jacent. Pourquoi ce brief maintenant ? Quel enjeu réel ?
+QUESTION : LA question centrale à résoudre. Une seule. Mesurable. Spécifique.
+</method>
+
+<output_format>
+## OBJECTIF CENTRAL
+La mission mesurable en 1-2 phrases. PAS "faire un site" — OUI "générer X leads via le référencement local".
+
+## CONTEXTE PROJET
+Situation et complication identifiées. Ce que l'équipe doit savoir absolument. 3-4 lignes max.
+
+## LIVRABLES PAR AGENT
+[Nom Agent] → [Ce qu'il produit exactement pour ce brief]
+Basé UNIQUEMENT sur les agents listés dans [AGENTS DE LA CHAÎNE] de ton contexte.
+Ne jamais mentionner un agent absent de cette liste.
+
+## CONTRAINTES ET PRIORITÉS
+Ce qui est non négociable. Ce qui est prioritaire vs secondaire.
+[INFO MANQUANTE : X] si information critique absente du brief.
+</output_format>
+
+<rules>
+TU NE FAIS JAMAIS :
+- Inventer des informations non fournies dans le brief
+- Dépasser 350 tokens dans ton output
+- Mentionner des agents absents de [AGENTS DE LA CHAÎNE]
+- Écrire en prose longue — format structuré uniquement
+
+TU FAIS TOUJOURS :
+- Reformuler l'objectif de façon mesurable
+- Identifier la vraie complication (pas le symptôme)
+- Assigner des livrables précis et distincts à chaque agent
+- Marquer [INFO MANQUANTE : X] plutôt qu'inventer
+</rules>`,
   },
   {
     id: "omar",
     name: "Omar",
     role: "Analyste Business",
-    description: "Analyse de marché, modèle économique, positionnement concurrentiel.",
+    description: "TAM/SAM/SOM, business model, concurrence, pricing, pitch investisseur.",
     model: MODEL_TIERS.specialist,   // Haiku — analyse structurée
     temperature: 50,
     colors: ["#10B981", "#06B6D4"],
@@ -33,7 +80,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "sofia",
     name: "Sofia",
     role: "Stratège SEO",
-    description: "Mots-clés, intention de recherche, architecture sémantique.",
+    description: "Mots-clés, architecture sémantique, audit technique, référencement local.",
     model: MODEL_TIERS.specialist,   // Haiku — exécution SEO
     temperature: 40,
     colors: ["#8B5CF6", "#EC4899"],
@@ -44,7 +91,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "camille",
     name: "Camille",
     role: "Experte Juridique",
-    description: "Conformité, mentions légales, risques contractuels.",
+    description: "CGV, mentions légales, RGPD, contrats, conformité France/EU.",
     model: MODEL_TIERS.specialist,   // Haiku — structure légale
     temperature: 20,
     colors: ["#64748B", "#6366F1"],
@@ -55,7 +102,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "leo",
     name: "Léo",
     role: "Copywriter Senior",
-    description: "Rédaction persuasive, storytelling, conversion.",
+    description: "Landing pages, emails, storytelling, copy de vente, tone of voice.",
     model: MODEL_TIERS.analyst,      // Sonnet — créativité rédactionnelle
     temperature: 80,
     colors: ["#F59E0B", "#EF4444"],
@@ -66,7 +113,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "maya",
     name: "Maya",
     role: "Traductrice Multilingue",
-    description: "Adaptation culturelle, traduction EN/FR/ES/DE.",
+    description: "Adaptation culturelle et traduction FR/EN/ES/DE. Nuances locales.",
     model: MODEL_TIERS.specialist,   // Haiku — traduction structure
     temperature: 30,
     colors: ["#06B6D4", "#3B82F6"],
@@ -77,7 +124,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "axel",
     name: "Axel",
     role: "Designer UI/UX",
-    description: "Système de design, wireframes textuels, spécifications visuelles.",
+    description: "Design system, wireframes, user flows, specs visuelles pour développeur.",
     model: MODEL_TIERS.specialist,   // Haiku — specs structurées
     temperature: 70,
     colors: ["#7C3AED", "#DB2777"],
@@ -88,7 +135,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "nina",
     name: "Nina",
     role: "Architecte Technique",
-    description: "Stack technique, architecture système, décisions d'implémentation.",
+    description: "Stack, APIs, schémas de données, scalabilité, décisions d'implémentation.",
     model: MODEL_TIERS.analyst,      // Sonnet — réflexion architecture
     temperature: 35,
     colors: ["#0EA5E9", "#10B981"],
@@ -99,7 +146,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "tom",
     name: "Tom",
     role: "Expert QA",
-    description: "Tests, cas limites, plan de validation, critères d'acceptation.",
+    description: "Tests, edge cases, sécurité, performance, critères d'acceptation.",
     model: MODEL_TIERS.specialist,   // Haiku — plan de test structuré
     temperature: 25,
     colors: ["#EF4444", "#F97316"],
@@ -110,7 +157,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "ella",
     name: "Ella",
     role: "Agent de Fusion",
-    description: "Synthèse et consolidation de tous les outputs de l'équipe.",
+    description: "Synthèse cohérente de tous les outputs de l'équipe. Élimine les contradictions.",
     model: MODEL_TIERS.analyst,      // Sonnet — cohérence et synthèse
     temperature: 50,
     colors: ["#A259FF", "#007AFF"],
@@ -121,7 +168,7 @@ export const DEFAULT_AGENTS: Agent[] = [
     id: "ryo",
     name: "Ryo",
     role: "Validateur Final",
-    description: "Revue critique, détection d'incohérences, score de qualité.",
+    description: "Score /10, critique constructive, points forts/faibles, recommandation.",
     model: MODEL_TIERS.analyst,      // Sonnet — jugement critique
     temperature: 20,
     colors: ["#6366F1", "#8B5CF6"],
@@ -157,7 +204,7 @@ Ensuite, développe ton analyse complète avec tous les détails.`,
     id: "pixel",
     name: "Pixel",
     role: "Générateur Visuel IA",
-    description: "Génère des images via DALL-E 3 ou Flux.",
+    description: "Génération d'images via DALL-E 3, Flux, Ideogram. Prompts optimisés.",
     model: MODEL_TIERS.analyst,
     temperature: 70,
     colors: ["#EC4899", "#F97316"],
@@ -172,7 +219,7 @@ Ensuite, développe ton analyse complète avec tous les détails.`,
     id: "motion",
     name: "Motion",
     role: "Générateur Vidéo IA",
-    description: "Génère des vidéos courtes via Runway.",
+    description: "Génération de vidéos courtes via Runway, Kling, HappyHorse.",
     model: MODEL_TIERS.analyst,
     temperature: 60,
     colors: ["#6366F1", "#8B5CF6"],
@@ -187,7 +234,7 @@ Ensuite, développe ton analyse complète avec tous les détails.`,
     id: "voice",
     name: "Voice",
     role: "Générateur Audio IA",
-    description: "Génère des voix off via ElevenLabs.",
+    description: "Voix off et narrations via ElevenLabs, OpenAI TTS. Optimisation script oral.",
     model: MODEL_TIERS.fast,
     temperature: 30,
     colors: ["#10B981", "#06B6D4"],
@@ -202,7 +249,7 @@ Ensuite, développe ton analyse complète avec tous les détails.`,
     id: "sam",
     name: "Sam",
     role: "Scribe & Setup",
-    description: "JSON structuré pour Forge, super-prompt Claude Code, ou HTML direct selon le format demandé.",
+    description: "JSON structuré (→ Forge), super-prompt Claude Code, dashboard HTML interactif.",
     model: MODEL_TIERS.specialist,
     temperature: 30,
     colors: ["#34D399", "#10B981"],
@@ -274,7 +321,7 @@ Produis la note technique Claude Code (Mode 2).`,
     id: "forge",
     name: "Forge",
     role: "Producteur de fichiers",
-    description: "Transforme le JSON structuré de Sam en vrais fichiers téléchargeables (PDF, Excel, PowerPoint, Word) via E2B sandbox.",
+    description: "Produit PDF, Excel, PowerPoint, Word téléchargeables via E2B sandbox Python.",
     model: MODEL_TIERS.analyst,
     temperature: 20,
     colors: ["#F97316", "#EF4444"],

@@ -785,9 +785,141 @@ print(f"Archive créée : archive.zip ({len(files_to_zip)} fichiers)")
   ],
 };
 
+// ─── Pack Marcus Expert ───────────────────────────────────────────────────────
+
+export const MARCUS_EXPERT_PACK: SkillPack = {
+  id: "marcus_expert",
+  name: "Marcus Expert",
+  icon: "🧠",
+  description: "Frameworks professionnels pour Marcus. Sources : McKinsey, Harvard, US Army, Anthropic.",
+  sector: "orchestration",
+  skills: [
+    {
+      id: "marcus_scq",
+      name: "Qualification Brief SCQ",
+      description: "Framework McKinsey pour qualifier les briefs avant de lancer.",
+      agentIds: ["marcus"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["brief", "projet", "objectif", "besoin"],
+      sector: "orchestration",
+      createdBy: "system",
+      content: `SKILL SCQ FRAMEWORK
+Source : McKinsey/Barbara Minto — managementconsulted.com/pyramid-principle
+
+Pour chaque brief appliquer silencieusement :
+
+SITUATION : Ce qui est stable et connu (contexte, secteur, état actuel)
+COMPLICATION : Le vrai problème sous-jacent (pourquoi ce brief maintenant ?)
+QUESTION : UNE seule question centrale mesurable (pas "faire un site" — "générer X leads")
+
+SCORE BRIEF :
+Objectif mesurable présent   → +3 pts
+Secteur et cible identifiés  → +3 pts
+Contraintes mentionnées      → +2 pts
+Différenciateur clair        → +2 pts
+
+COMPORTEMENT SELON SCORE :
+0-4  : Poser 1 question bloquante — ne jamais proposer de lancer
+5-7  : Signaler ce qui manque + proposer de lancer quand même
+8-10 : Confirmer et proposer de lancer directement`,
+    },
+    {
+      id: "marcus_jtbd",
+      name: "Jobs To Be Done Analysis",
+      description: "Framework Christensen Harvard pour identifier le vrai besoin.",
+      agentIds: ["marcus"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["pourquoi", "besoin", "client", "utilisateur"],
+      sector: "orchestration",
+      createdBy: "system",
+      content: `SKILL JTBD (JOBS TO BE DONE)
+Source : Clayton Christensen, Harvard Business School — aha.io/roadmapping/guide/jtbd
+
+Pour chaque brief identifier :
+
+JOB FONCTIONNEL : Ce que l'utilisateur veut FAIRE
+→ Action concrète et mesurable
+→ Influence la composition de l'équipe
+
+JOB ÉMOTIONNEL : Ce qu'il veut RESSENTIR
+→ Confiance, fierté, soulagement ?
+→ Influence le ton des agents créatifs
+
+JOB SOCIAL : Comment il veut être PERÇU
+→ Expert, innovant, sérieux ?
+→ Influence le style visuel et le positionnement
+
+OBSTACLES : Pourquoi ça n'a pas été fait avant ?
+→ Révèle les vraies contraintes (budget, temps, compétence)`,
+    },
+    {
+      id: "marcus_team_composition",
+      name: "Team Composition Rules",
+      description: "Règles McKinsey pour composer l'équipe minimale efficace.",
+      agentIds: ["marcus"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["équipe", "agents", "composition", "chaîne"],
+      sector: "orchestration",
+      createdBy: "system",
+      content: `SKILL COMPOSITION D'ÉQUIPE
+Source : McKinsey staffing model — hackingthecaseinterview.com/pages/mckinsey-consultant
+
+PRINCIPE FONDAMENTAL :
+Équipe minimale efficace.
+Chaque agent = valeur unique non couverte ailleurs.
+Si 2 agents font la même chose → retirer le moins spécialisé.
+
+CONNECTEURS ENRICHISSENT LA COMPOSITION :
+Agent avec connecteur recherche actif → lui assigner les tâches data et veille
+Agent avec connecteur génération actif → l'inclure pour les briefs créatifs
+Agent avec E2B actif → l'inclure si format fichier demandé
+
+JUSTIFICATION TOUJOURS PRÉCISE :
+PAS "pour le SEO"
+OUI "car brief mentionne 'visibilité Google' + skill SEO actif + connecteur recherche configuré"`,
+    },
+    {
+      id: "marcus_aar",
+      name: "After Action Review",
+      description: "Méthode AAR US Army adaptée McKinsey pour analyser le score Ryo.",
+      agentIds: ["marcus"],
+      isActive: true,
+      isTemporary: false,
+      inheritToAll: false,
+      triggerKeywords: ["score", "résultat", "analyse", "amélioration"],
+      sector: "orchestration",
+      createdBy: "system",
+      content: `SKILL AFTER ACTION REVIEW (AAR)
+Source : US Army AAR methodology, adopté par McKinsey pour les debriefs projets
+
+Après chaque chaîne analyser :
+1. QU'ÉTAIT L'OBJECTIF ? (brief initial)
+2. QUE S'EST-IL PASSÉ ? (résultat Ryo)
+3. POURQUOI CETTE DIFFÉRENCE ?
+   Brief vague → contexte insuffisant pour les agents
+   Agent manquant → angle non traité dans le livrable
+   Connecteur absent → données ou génération manquantes
+4. QUE FAIRE DIFFÉREMMENT ?
+   Action concrète, immédiate, avec coût estimé
+
+FORMAT DE RÉPONSE OBLIGATOIRE :
+Score ≥ 9 : "[X]/10 — [1 point fort précis]. [Sauvegarder ?]"
+Score 7-8 : "[X]/10 — Cause : [précis]. Fix : [agent] + [instruction]. ~$[X]"
+Score < 7 : "[X]/10 — Cause : [AAR précis]. Recommande : [action 1] + [action 2]."`,
+    },
+  ],
+};
+
 // Les packs visuels et production rejoignent SKILL_PACKS après leur déclaration
 SKILL_PACKS.push(VISUAL_CREATION_PACK);
 SKILL_PACKS.push(FORGE_PRODUCTION_PACK);
+SKILL_PACKS.push(MARCUS_EXPERT_PACK);
 
 // Générer des IDs stables pour les skills des packs
 export function materializeSkillPack(pack: SkillPack): Array<import("@/types").Skill> {

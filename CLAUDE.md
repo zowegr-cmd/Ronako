@@ -118,6 +118,20 @@ Phase 6 livrée :
 ✅ Export/Import équipes (.ronako-team)
 ✅ Export/Import packs (.ronako-pack)
 ✅ Code de partage court local (RONAKO-XX-XXXX)
+
+Marcus V2 livré (hors phase numérotée) :
+✅ Prompt A (agent chaîne) : SCQ + output structuré ~350 tokens
+✅ Prompt B (conversation) : SCQ + JTBD + behavior_rules + post_chain_behavior
+✅ Prompt C (buildPlan) : composition rules McKinsey + template hint
+✅ Système d'agents dynamique : buildMarcusAgentContext.ts (seule source de vérité)
+✅ chainAgentList injecté dans ChainContext pour Marcus agent-0
+✅ briefAnalyzer.ts réactivé → score injecté dans conversation Marcus
+✅ buildMemoryPrompt réactivé → patterns injectés dans chat + planning
+✅ detectChainTemplate réactivé → hint dans PLANNING_PROMPT
+✅ Persona + expertise + langue injectés dans PLANNING_PROMPT
+✅ Post-chaîne : appel Haiku After Action Review (score Ryo → analyse Marcus)
+✅ Pack Marcus Expert (4 skills : SCQ, JTBD, Team Composition, AAR)
+✅ Auto-install du pack marcus_expert au premier lancement
 ```
 
 ---

@@ -606,6 +606,87 @@ Forge opérationnel. TS 0 erreur, Rust 0 warning.
 
 ---
 
+## SESSION 2026-05-30 — Marcus V2 + Système d'agents dynamique
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ Audit complet Marcus → MARCUS_AUDIT.md
+   5 problèmes identifiés : dead code, mémoire non lue, prompts trop courts,
+   pas de cohérence A/B/C, pas de commentaire post-chaîne
+
+✅ buildMarcusAgentContext.ts (créé)
+   Seule source de vérité sur les agents disponibles.
+   buildMarcusAgentContext() + buildMarcusAgentList()
+   → agents temps-réel depuis stores (agentStore + connectorStore)
+
+✅ chainEngine.ts — ChainContext.chainAgentList ajouté
+   Injecté pour Marcus (agent 0) : [AGENTS DE LA CHAÎNE] avec rôles+descriptions
+
+✅ defaultTeam.ts — Descriptions enrichies + Prompt A reécrit
+   Toutes les descriptions agent enrichies (spécialités précises)
+   Prompt A : 55 → ~350 tokens, SCQ framework, output structuré, zéro nom hardcodé
+
+✅ useMarcusChat.ts — Prompt B complet + dead code réactivé
+   MARCUS_CONVERSATION_PROMPT : SCQ + JTBD + behavior_rules + post_chain_behavior
+   briefAnalyzer.ts réactivé (score injecté si message > 50 chars)
+   buildMemoryPrompt réactivé (patterns utilisateur)
+   buildMarcusAgentContext injecté dans chaque appel
+
+✅ useMarcusPlan.ts — Prompt C + agentContext + mémoire + adaptiveChain
+   PLANNING_PROMPT → buildPlanningPrompt() paramétrique
+   buildMarcusAgentList() remplace l'ancien agentList
+   loadUserMemory() → RÈGLE 5 patterns dans PLANNING_PROMPT
+   detectChainTemplate() → hint template (adaptiveChain réactivé)
+   Persona + expertise + langue injectés
+
+✅ useChainRunner.ts — chainAgentList + post-chaîne AAR
+   chainAgentList construit depuis agentsWithMode.slice(1) pour Marcus (i=0)
+   Post-chaîne : appel Haiku MARCUS_AAR_PROMPT → analyse After Action Review
+   Message ajouté comme role: "assistant" agentId: "marcus"
+
+✅ skillPacks.ts — Pack Marcus Expert (4 skills)
+   marcus_scq, marcus_jtbd, marcus_team_composition, marcus_aar
+   Sources citées : McKinsey, Harvard, US Army
+   Auto-install dans installDefaultPacks()
+
+✅ agentStore.ts — marcus_expert ajouté à ESSENTIAL_PACK_IDS
+
+✅ AGENT_MARCUS.md créé (documentation technique complète)
+
+✅ TypeScript 0 erreurs — Rust 0 warnings
+```
+
+### FICHIERS MODIFIÉS
+```
+src/lib/buildMarcusAgentContext.ts   (créé)
+src/lib/chainEngine.ts               (ChainContext.chainAgentList)
+src/lib/agents/defaultTeam.ts        (descriptions + Prompt A)
+src/hooks/useMarcusChat.ts           (Prompt B + briefAnalyzer + mémoire + agentContext)
+src/hooks/useMarcusPlan.ts           (Prompt C + agentList + mémoire + adaptiveChain)
+src/hooks/useChainRunner.ts          (chainAgentList injection + AAR post-chaîne)
+src/lib/skillPacks.ts                (Pack Marcus Expert 4 skills)
+src/store/agentStore.ts              (marcus_expert dans installDefaultPacks)
+CLAUDE.md                            (Marcus V2 documenté)
+AGENT_MARCUS.md                      (créé — documentation technique)
+```
+
+### DÉCISIONS TECHNIQUES
+```
+- Zéro nom d'agent hardcodé dans les 3 prompts Marcus
+- buildMarcusAgentContext = seule source de vérité agents disponibles
+- briefAnalyzer silencieux : jamais bloquant, toujours facultatif
+- Post-chaîne AAR via runApiCall (Haiku existant) — pas de nouveau path API
+- Pack marcus_expert auto-installé au 1er lancement
+```
+
+### ÉTAT ACTUEL
+Marcus V2 opérationnel. Système d'agents dynamique. TS 0 erreur, Rust 0 warning.
+
+### PROCHAINE SESSION
+Phase 8D ou corrections/ajustements Marcus selon retours utilisateur.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

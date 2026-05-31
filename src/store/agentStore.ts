@@ -223,8 +223,8 @@ export const useAgentStore = create<AgentStore>()(
         })),
       installDefaultPacks: () => {
         if (get().hasInstalledDefaultPacks) return;
-        // Installer forge_production et visual_creation au premier lancement
-        const ESSENTIAL_PACK_IDS = ["forge_production", "visual_creation"];
+        // Installer forge_production, visual_creation et marcus_expert au premier lancement
+        const ESSENTIAL_PACK_IDS = ["forge_production", "visual_creation", "marcus_expert"];
         const existingSkillIds = new Set(get().skills.map((sk) => sk.id));
         const allNewSkills: ReturnType<typeof materializeSkillPack> = [];
         for (const packId of ESSENTIAL_PACK_IDS) {

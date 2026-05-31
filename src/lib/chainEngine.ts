@@ -54,6 +54,7 @@ export interface ChainContext {
   activeToolNames?: string[];    // Phase 8 — noms des outils disponibles pour cet agent
   teamCapabilities?: string;     // Phase 9 — capacités skills/outils de toute l'équipe
   selectedFormats?: string[];    // Forge — formats de fichiers demandés
+  chainAgentList?: string;       // Marcus V2 — liste agents de la chaîne (injecté pour agent 0)
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -133,8 +134,13 @@ export function buildAgentPrompt(
     ? `[OUTILS DISPONIBLES]\n${context.activeToolNames.map((t) => `- ${t}`).join("\n")}\nUtilise ces outils quand c'est pertinent pour ta tâche.\n\n`
     : "";
 
+  // ── Liste agents de la chaîne — injectée pour Marcus (agent 0) ───────────
+  const chainAgentBlock = isFirst && context.chainAgentList
+    ? `${context.chainAgentList}\n\n`
+    : "";
+
   if (isFirst) {
-    return `${header}${langBlock}${formatsBlock}${toolsBlock}Projet : ${context.projectName}
+    return `${header}${langBlock}${formatsBlock}${toolsBlock}${chainAgentBlock}Projet : ${context.projectName}
 
 Brief :
 ${context.userBrief}
@@ -397,7 +403,17 @@ export function buildToolDefinitions(
   const defs: ToolDefinition[] = [];
 
   for (const id of connectorIds) {
-    // Outils avec implémentation Rust dédiée (Phase 8)
+    // fal.ai : inclure image ET vidéo quand connector "fal" est actif
+    if (id === "fal") {
+      const key = toolKeys.extra?.["fal"];
+      if (key) {
+        defs.push(TOOL_DEFINITIONS["fal"]);
+        defs.push(TOOL_DEFINITIONS["fal-video"]);
+      }
+      continue;
+    }
+
+    // Outils avec implémentation Rust dédiée (Phase 8 + Phase 10)
     if (TOOL_DEFINITIONS[id]) {
       const key = (toolKeys[id as keyof ToolKeys] as string | undefined)
         ?? toolKeys.extra?.[id];
