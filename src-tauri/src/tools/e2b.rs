@@ -141,33 +141,59 @@ pub async fn execute(tool_use_id: &str, input: &Value, keys: &ToolKeys) -> ToolR
     let stdout = exec_result["stdout"].as_str().unwrap_or("").to_string();
     let stderr = exec_result["stderr"].as_str().unwrap_or("").to_string();
 
-    // 4. Récupérer les fichiers générés
-    let files_url = format!("https://api.e2b.dev/sandboxes/{}/files", sandbox_id);
-    let files_resp = client
-        .get(&files_url)
+    // 4. Lister puis télécharger chaque fichier généré
+    // Étape 4a : GET /files → liste [{name, path, is_dir, ...}] (pas de content inline)
+    let files_list_url = format!("https://api.e2b.dev/sandboxes/{}/files", sandbox_id);
+    let files_list_resp = client
+        .get(&files_list_url)
         .header("X-API-Key", &api_key)
         .send()
         .await
         .ok();
 
     let mut saved_files: Vec<Value> = vec![];
-    if let Some(resp) = files_resp {
+    if let Some(resp) = files_list_resp {
         if let Ok(files_json) = resp.json::<Value>().await {
             if let Some(files) = files_json.as_array() {
                 for f in files {
+                    let is_dir = f["is_dir"].as_bool().unwrap_or(false);
+                    if is_dir { continue; } // ignorer les dossiers
+
                     let name = f["name"].as_str().unwrap_or("file");
-                    let content_b64 = f["content"].as_str().unwrap_or("");
-                    if !content_b64.is_empty() {
-                        let bytes = base64_decode(content_b64);
-                        let timestamp = chrono::Utc::now().timestamp_millis();
-                        let filename = format!("{}-{}", timestamp, name);
-                        let path = outputs_dir().join(&filename);
-                        if std::fs::write(&path, &bytes).is_ok() {
-                            saved_files.push(serde_json::json!({
-                                "name": name,
-                                "local_path": path.to_string_lossy(),
-                                "size_bytes": bytes.len()
-                            }));
+                    let file_path = f["path"].as_str().unwrap_or_default();
+                    if file_path.is_empty() || name.is_empty() { continue; }
+
+                    // Ignorer les fichiers système Python courants
+                    if name.ends_with(".pyc") || file_path.contains("/__pycache__") { continue; }
+
+                    // Étape 4b : GET /files?path={path} → {content: "<base64>"} pour chaque fichier
+                    let download_url = format!(
+                        "https://api.e2b.dev/sandboxes/{}/files?path={}",
+                        sandbox_id, file_path
+                    );
+                    let dl_resp = client
+                        .get(&download_url)
+                        .header("X-API-Key", &api_key)
+                        .send()
+                        .await
+                        .ok();
+
+                    if let Some(dl) = dl_resp {
+                        if let Ok(dl_json) = dl.json::<Value>().await {
+                            let content_b64 = dl_json["content"].as_str().unwrap_or("");
+                            if !content_b64.is_empty() {
+                                let bytes = base64_decode(content_b64);
+                                let timestamp = chrono::Utc::now().timestamp_millis();
+                                let local_filename = format!("{}-{}", timestamp, name);
+                                let local_path = outputs_dir().join(&local_filename);
+                                if std::fs::write(&local_path, &bytes).is_ok() {
+                                    saved_files.push(serde_json::json!({
+                                        "name": name,
+                                        "local_path": local_path.to_string_lossy(),
+                                        "size_bytes": bytes.len()
+                                    }));
+                                }
+                            }
                         }
                     }
                 }

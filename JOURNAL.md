@@ -687,6 +687,53 @@ Phase 8D ou corrections/ajustements Marcus selon retours utilisateur.
 
 ---
 
+## SESSION 2026-05-30 — Correctif critique fichiers & Forge
+
+### CE QUI A ÉTÉ FAIT
+```
+✅ DIAGNOSTIC_FICHIERS.md — audit complet du flow fichiers
+   3 bugs critiques identifiés dans le code réel
+
+✅ Bug 1 FIXÉ — Stale closure selectedFormats
+   useChainRunner.ts : selectedFormats lu via useChainStore.getState()
+   au lieu de la closure stale → Forge maintenant correctement injecté
+   quand l'utilisateur sélectionne PDF/Excel/PPT/Word
+
+✅ Bug 2 FIXÉ — Skills non injectés dans systemPrompt
+   useChainRunner.ts : buildPromptWithSkills importé et appelé
+   enrichedSystemPrompt passé aux deux API calls (stream + tool use)
+   Forge reçoit maintenant les forge skills (WeasyPrint, openpyxl, etc.)
+
+✅ Bug 3 FIXÉ — E2B file retrieval cassé
+   e2b.rs : GET /files → liste uniquement (pas de content inline)
+   Nouveau flow : list files → download each separately via ?path=
+   Les fichiers sont maintenant correctement récupérés après exécution
+```
+
+### FICHIERS MODIFIÉS
+```
+src/hooks/useChainRunner.ts   (3 corrections : getState(), enrichedSystemPrompt, import)
+src-tauri/src/tools/e2b.rs   (file retrieval : 2-step list+download)
+DIAGNOSTIC_FICHIERS.md        (créé — audit technique)
+```
+
+### CAUSE RACINE EXPLIQUÉE
+```
+selectedFormats dans useCallback sans deps → stale closure → Forge jamais injecté
+Skills voided dans buildAgentPrompt → Forge sans instructions Python
+E2B /files sans content inline → fichiers jamais sauvegardés
+```
+
+### ÉTAT ACTUEL
+Flow complet opérationnel (si E2B configuré) :
+  Format PDF coché → Forge injecté → Forge reçoit skills forge →
+  E2B exécute → fichiers listés + téléchargés → DeliverablePanel affiche
+
+### PROCHAINE SESSION
+Phase 8D ou tests utilisateur du flow complet.
+
+---
+
 ## TEMPLATE POUR LES PROCHAINES SESSIONS
 
 ```

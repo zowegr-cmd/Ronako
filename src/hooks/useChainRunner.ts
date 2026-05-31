@@ -4,7 +4,7 @@ import { useAgentStore } from "@/store/agentStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useToastStore } from "@/store/toastStore";
 import { useProjectStore } from "@/store/projectStore";
-import { buildAgentPrompt, buildRelayPrompt, mockAgentResponse, buildToolDefinitions, type ToolKeys } from "@/lib/chainEngine";
+import { buildAgentPrompt, buildRelayPrompt, buildPromptWithSkills, mockAgentResponse, buildToolDefinitions, type ToolKeys } from "@/lib/chainEngine";
 import { calculateCost, estimateTokens } from "@/lib/tokenCounter";
 import { estimateRelaySavings, DNA_SYSTEM_PROMPT } from "@/lib/projectDNA";
 import { buildDependencyContext } from "@/lib/dependencyMatrix";
@@ -109,7 +109,7 @@ export function useChainRunner(teamId: string) {
     setLastDeliverableContent,
   } = useChainStore();
   const { getTeamAgents, getTeam, getActiveSkillsForAgent, skills } = useAgentStore();
-  const { selectedFormats } = useChainStore();
+  // selectedFormats lu via getState() dans runChain pour éviter la stale closure
   const { addSpend, apiKey, hasValidApiKey, monthlySpend, monthlyBudgetCap, connectorKeys, deliverableLanguage } = useSettingsStore();
   const { keys: allConnectorKeys, customConnectors, mcpStates } = useConnectorStore();
   const { addVisual, setGenerating } = useVisualStore();
@@ -240,7 +240,9 @@ export function useChainRunner(teamId: string) {
 
       // ── Injecter Forge automatiquement si formats fichiers demandés ──────
       const FILE_FORMAT_IDS = new Set(["pdf", "excel", "pptx", "word"]);
-      const needsForge = selectedFormats.some((f) => FILE_FORMAT_IDS.has(f));
+      // Lire selectedFormats depuis getState() pour éviter la stale closure du useCallback
+      const currentFormats = useChainStore.getState().selectedFormats;
+      const needsForge = currentFormats.some((f) => FILE_FORMAT_IDS.has(f));
       const alreadyHasForge = agents.some((a) => a.id === "forge");
       if (needsForge && !alreadyHasForge) {
         // Insérer Forge après Sam (ou en fin de chaîne si Sam absent)
@@ -434,12 +436,16 @@ export function useChainRunner(teamId: string) {
             deliverableLanguage,
             activeToolNames: activeToolNames.length > 0 ? activeToolNames : undefined,
             teamCapabilities: teamCapabilities || undefined,
-            selectedFormats: selectedFormats.length > 0 ? selectedFormats : undefined,
+            selectedFormats: currentFormats.length > 0 ? currentFormats : undefined,
             chainAgentList,
           },
           previousOutput,
           i,
         );
+
+        // ── Enrichir le system prompt avec les skills actifs ─────────
+        // buildPromptWithSkills ajoute les skills après le prompt de base
+        const enrichedSystemPrompt = buildPromptWithSkills(agent, allAgentSkills, universalSkills);
 
         if (useRealApi) {
           // ── Vérifier le cache (6.11) ─────────────────────────────
@@ -517,7 +523,7 @@ export function useChainRunner(teamId: string) {
 
                   invoke("anthropic_stream_with_tools", {
                     apiKey, model: agent.model,
-                    systemPrompt: agent.systemPrompt,
+                    systemPrompt: enrichedSystemPrompt,
                     userMessage: prompt,
                     requestId: reqId,
                     tools: allTools,
@@ -532,7 +538,7 @@ export function useChainRunner(teamId: string) {
                 stream({
                   apiKey,
                   model: agent.model,
-                  systemPrompt: agent.systemPrompt,
+                  systemPrompt: enrichedSystemPrompt,
                   userMessage: prompt,
                   onChunk: (chunk) => { appendStreaming(chunk); fullText += chunk; },
                   onDone: (text, inTok, outTok) => {
