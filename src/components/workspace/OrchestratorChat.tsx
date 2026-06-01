@@ -6,7 +6,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 import { AgentAvatar } from "@/components/agents/AgentAvatar";
 import { MarkdownMessage } from "@/components/ui/MarkdownMessage";
 import { useAgentStore } from "@/store/agentStore";
-import { useAgentChatStore } from "@/store/agentChatStore";
+import { useChainStore } from "@/store/chainStore";
 import { loadSavedBriefs, saveBrief, type SavedBrief } from "@/lib/savedBriefs";
 import { cn, formatCost, formatTokens, relativeTime } from "@/lib/utils";
 
@@ -40,18 +40,17 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
   const [input, setInput] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [savedBriefs, setSavedBriefs] = useState<SavedBrief[]>([]);
-  const { activeAgentId, streamingText, streamingAgentId, getMessages } = useAgentChatStore();
-  const messages = getMessages(activeAgentId);
+  const { workspaceMessages, run, streamingText, streamingAgentId } = useChainStore();
   const { getAgent } = useAgentStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const isStreaming = streamingAgentId !== null;
-  const isDisabled = disabled || isStreaming;
+  const isRunning = run.status === "running";
+  const isDisabled = disabled || isRunning;
   const chips = getContextChips(hasFolder, hasLastDeliverable);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [workspaceMessages]);
 
   useEffect(() => {
     if (showSaved) {
@@ -95,7 +94,7 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
         <AnimatePresence initial={false}>
-          {messages.map((msg) => {
+          {workspaceMessages.map((msg) => {
             const agent = msg.agentId ? getAgent(msg.agentId) : undefined;
             return (
               <ChatMessage key={msg.id} message={msg} agent={agent} />
@@ -104,7 +103,7 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
         </AnimatePresence>
 
         {/* Message en streaming */}
-        {isStreaming && streamingAgentId && (
+        {isRunning && streamingAgentId && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 justify-start">
             {(() => { const a = getAgent(streamingAgentId); return a ? <AgentAvatar colors={a.colors as [string,string]} name={a.name} size={26} /> : null; })()}
             <div className="max-w-[80%] flex flex-col gap-0.5">
@@ -118,7 +117,7 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
         )}
 
         {/* Typing indicator */}
-        {isStreaming && !streamingAgentId && (
+        {isRunning && !streamingAgentId && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2">
             <div className="flex gap-1 px-3 py-2 bg-graphite border border-crystal rounded-xl rounded-tl-sm">
               {[0,1,2].map(i => (
@@ -134,7 +133,7 @@ export function OrchestratorChat({ onSend, disabled = false, placeholder, hasFol
 
       {/* Chips contextuels (visibles si textarea vide) */}
       <AnimatePresence>
-        {!input && !isStreaming && (
+        {!input && !isRunning && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
             className="px-3 pb-1 flex gap-1.5 flex-wrap overflow-hidden">
             {chips.slice(0, 4).map((chip) => (
